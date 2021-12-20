@@ -1,8 +1,9 @@
-package dict
+package hashdict
 
 import (
 	"fmt"
 
+	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/hash"
 )
 
@@ -13,12 +14,7 @@ type Dict[K, V any] struct {
 	keyEq hash.EqHash[K]
 }
 
-type Entry[K, V any] struct {
-	Key   K
-	Value V
-}
-
-func New[K, V any](eq hash.EqHash[K], entries ...Entry[K, V]) Dict[K, V] {
+func New[K, V any](eq hash.EqHash[K], entries ...dict.Entry[K, V]) Dict[K, V] {
 	var root node[K, V] = empty[K, V]{}
 	for _, e := range entries {
 		root = root.updated0(e.Key, eq.Hash(e.Key), 0, e.Value, eq)

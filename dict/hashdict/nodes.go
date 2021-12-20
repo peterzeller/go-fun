@@ -1,6 +1,8 @@
-package dict
+package hashdict
 
 import (
+	"github.com/peterzeller/go-fun/v2/dict"
+	"github.com/peterzeller/go-fun/v2/dict/arraydict"
 	"github.com/peterzeller/go-fun/v2/equality"
 	"github.com/peterzeller/go-fun/v2/zero"
 )
@@ -17,13 +19,13 @@ type empty[K, V any] struct{}
 // node with one element
 type singleton[K, V any] struct {
 	hash  int64
-	entry Entry[K, V]
+	entry dict.Entry[K, V]
 }
 
 // bucket containing multiple entries that hash to the same value
 type bucket[K, V any] struct {
 	hash    int64
-	entries []Entry[K, V]
+	entries arraydict.ArrayDict[K, V]
 }
 
 type trie[K, V any] struct {
@@ -49,7 +51,7 @@ func (e singleton[K, V]) size() int {
 }
 
 func (e bucket[K, V]) size() int {
-	return len(e.entries)
+	return e.entries.Size()
 }
 
 func (e trie[K, V]) size() int {
@@ -71,12 +73,7 @@ func (e bucket[K, V]) get0(key K, hash int64, level int, eq equality.Equality[K]
 	if e.hash != hash {
 		return zero.Value[V](), false
 	}
-	for _, e := range e.entries {
-		if eq.Equal(e.Key, key) {
-			return e.Value, true
-		}
-	}
-	return zero.Value[V](), false
+	return e.entries.Get(key, eq)
 }
 
 func (e trie[K, V]) get0(key K, hash int64, level int, eq equality.Equality[K]) (V, bool) {
@@ -89,7 +86,7 @@ func (e trie[K, V]) get0(key K, hash int64, level int, eq equality.Equality[K]) 
 func (e empty[K, V]) updated0(key K, hash int64, level int, value V, eq equality.Equality[K]) node[K, V] {
 	return singleton[K, V]{
 		hash:  hash,
-		entry: Entry[K, V]{key, value},
+		entry: dict.Entry[K, V]{Key: key, Value: value},
 	}
 }
 
@@ -99,23 +96,20 @@ func (e singleton[K, V]) updated0(key K, hash int64, level int, value V, eq equa
 			// replace
 			return singleton[K, V]{
 				hash:  hash,
-				entry: Entry[K, V]{key, value},
+				entry: dict.Entry[K, V]{Key: key, Value: value},
 			}
 		} else {
 			// hash collision -> create bucket
 			return bucket[K, V]{
-				hash: hash,
-				entries: []Entry[K, V]{
-					e.entry,
-					{key, value},
-				},
+				hash:    hash,
+				entries: arraydict.New(e.entry, dict.Entry[K, V]{Key: key, Value: value}),
 			}
 		}
 	} else {
 		// hashes are different, but collision at current level -> create a deeper trie
 		e2 := singleton[K, V]{
 			hash:  hash,
-			entry: Entry[K, V]{key, value},
+			entry: dict.Entry[K, V]{Key: key, Value: value},
 		}
 		return makeTrie[K, V](e.hash, e, e2.hash, e2, level, 2, eq)
 	}
@@ -130,26 +124,14 @@ func index(hash int64, level int) int {
 func (e bucket[K, V]) updated0(key K, hash int64, level int, value V, eq equality.Equality[K]) node[K, V] {
 	if hash == e.hash {
 		// add to existing bucket
-		entries := make([]Entry[K, V], 0, len(e.entries)+1)
-		entries = append(entries, e.entries...)
-		updated := false
-		for i := range entries {
-			if eq.Equal(entries[i].Key, key) {
-				entries[i].Value = value
-				updated = true
-				break
-			}
-		}
-		if !updated {
-			entries = append(entries, Entry[K, V]{key, value})
-		}
+		newEntries := e.entries.Set(key, value, eq)
 		return bucket[K, V]{
 			hash:    hash,
-			entries: entries,
+			entries: newEntries,
 		}
 	}
 	// if hashes are different, make a new try
-	return makeTrie[K, V](e.hash, e, hash, singleton[K, V]{hash, Entry[K, V]{key, value}}, level, e.size()+1, eq)
+	return makeTrie[K, V](e.hash, e, hash, singleton[K, V]{hash, dict.Entry[K, V]{Key: key, Value: value}}, level, e.size()+1, eq)
 }
 
 func (e trie[K, V]) updated0(key K, hash int64, level int, value V, eq equality.Equality[K]) node[K, V] {
@@ -164,7 +146,7 @@ func (e trie[K, V]) updated0(key K, hash int64, level int, value V, eq equality.
 	}
 	// no node at the given index yet -> add singleton entry
 	return trie[K, V]{
-		children: e.children.set(i, singleton[K, V]{hash, Entry[K, V]{key, value}}),
+		children: e.children.set(i, singleton[K, V]{hash, dict.Entry[K, V]{Key: key, Value: value}}),
 		count:    e.count + 1,
 	}
 }
@@ -175,14 +157,14 @@ func makeTrie[K, V any](aHash int64, a node[K, V], bHash int64, b node[K, V], le
 	if indexA != indexB {
 		return trie[K, V]{
 			children: newSparseArray(
-				Entry[int, node[K, V]]{indexA, a},
-				Entry[int, node[K, V]]{indexB, b}),
+				dict.Entry[int, node[K, V]]{Key: indexA, Value: a},
+				dict.Entry[int, node[K, V]]{Key: indexB, Value: b}),
 			count: size,
 		}
 	} else {
 		return trie[K, V]{
 			children: newSparseArray(
-				Entry[int, node[K, V]]{indexA, makeTrie(aHash, a, bHash, b, level+5, size, eq)}),
+				dict.Entry[int, node[K, V]]{Key: indexA, Value: makeTrie(aHash, a, bHash, b, level+5, size, eq)}),
 			count: size,
 		}
 	}

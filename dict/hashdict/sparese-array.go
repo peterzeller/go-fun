@@ -1,8 +1,9 @@
-package dict
+package hashdict
 
 import (
 	"math/bits"
 
+	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/reducer"
 	"github.com/peterzeller/go-fun/v2/zero"
 )
@@ -14,12 +15,12 @@ type sparseArray[T any] struct {
 	values []T
 }
 
-func newSparseArray[T any](values ...Entry[int, T]) (res sparseArray[T]) {
+func newSparseArray[T any](values ...dict.Entry[int, T]) (res sparseArray[T]) {
 	res.values = make([]T, len(values))
 	i := 0
 	reducer.ApplySlice(values,
-		reducer.Sorted(func(a, b Entry[int, T]) bool { return a.Key < b.Key },
-			reducer.Do(func(e Entry[int, T]) {
+		reducer.Sorted(func(a, b dict.Entry[int, T]) bool { return a.Key < b.Key },
+			reducer.Do(func(e dict.Entry[int, T]) {
 				res.bitmap = res.bitmap | (1 << e.Key)
 				res.values[i] = e.Value
 				i++
@@ -27,7 +28,7 @@ func newSparseArray[T any](values ...Entry[int, T]) (res sparseArray[T]) {
 	return
 }
 
-func newSparseArraySorted[T any](values ...Entry[int, T]) (res sparseArray[T]) {
+func newSparseArraySorted[T any](values ...dict.Entry[int, T]) (res sparseArray[T]) {
 	res.values = make([]T, len(values))
 	for i, e := range values {
 		res.bitmap = res.bitmap | (1 << e.Key)

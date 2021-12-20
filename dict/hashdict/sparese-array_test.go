@@ -1,26 +1,27 @@
-package dict
+package hashdict
 
 import (
 	"fmt"
 	"testing"
 
+	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/stretchr/testify/require"
 	"pgregory.net/rapid"
 )
 
-func genEntries(t *rapid.T, name string) []Entry[int, string] {
-	return rapid.SliceOf(rapid.Custom(func(t *rapid.T) Entry[int, string] {
-		return Entry[int, string]{
+func genEntries(t *rapid.T, name string) []dict.Entry[int, string] {
+	return rapid.SliceOf(rapid.Custom(func(t *rapid.T) dict.Entry[int, string] {
+		return dict.Entry[int, string]{
 			Key:   rapid.IntRange(0, 31).Draw(t, "key").(int),
 			Value: fmt.Sprintf("%d", rapid.IntRange(0, 10).Draw(t, "value").(int)),
 		}
-	})).Draw(t, name).([]Entry[int, string])
+	})).Draw(t, name).([]dict.Entry[int, string])
 }
 
 func TestSparseArrayGet(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		ar := genEntries(t, "slice")
-		values := make([]Entry[int, string], 0, len(ar))
+		values := make([]dict.Entry[int, string], 0, len(ar))
 		m := make(map[int]string)
 
 		for _, e := range ar {
@@ -45,7 +46,7 @@ func TestSparseArrayGet(t *testing.T) {
 func TestSparseArraySet(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		ar := genEntries(t, "slice")
-		values := make([]Entry[int, string], 0, len(ar))
+		values := make([]dict.Entry[int, string], 0, len(ar))
 		m := make(map[int]string)
 
 		for _, e := range ar {

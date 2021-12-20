@@ -1,11 +1,11 @@
-package dict_test
+package hashdict_test
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/dict/arraydict"
+	"github.com/peterzeller/go-fun/v2/dict/hashdict"
 	"github.com/peterzeller/go-fun/v2/hash"
 	"github.com/stretchr/testify/require"
 	"pgregory.net/rapid"
@@ -45,11 +45,11 @@ func genKey(t *rapid.T) key {
 func TestDictGetSet(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 
-		dicts := []dict.Dict[key, int]{
-			dict.New[key, int](keyHash),
+		dicts := []hashdict.Dict[key, int]{
+			hashdict.New[key, int](keyHash),
 		}
 		arrayDicts := []arraydict.ArrayDict[key, int]{
-			arraydict.New[key, int](keyHash),
+			arraydict.New[key, int](),
 		}
 
 		n := rapid.IntRange(1, 100).Draw(t, "n").(int)
@@ -61,17 +61,17 @@ func TestDictGetSet(t *testing.T) {
 			switch cmd {
 			case 0: // get
 				key := genKey(t)
-				t.Logf("dict[%d].Get(%s)", d, key)
+				t.Logf("dict[%d].Get('%s')", d, key)
 				v1, ok1 := dict.Get(key)
-				v2, ok2 := arrayDict.Get(key)
+				v2, ok2 := arrayDict.Get(key, keyHash)
 				require.Equal(t, ok2, ok1)
 				require.Equal(t, v2, v1)
 			case 1: // set
 				key := genKey(t)
 				v := rapid.IntRange(0, 10).Draw(t, "value").(int)
-				t.Logf("dict[%d] = dict[%d].Set(%s, %d)", len(dicts), d, key, v)
+				t.Logf("dict[%d] = dict[%d].Set('%s', %d)", len(dicts), d, key, v)
 				d1 := dict.Set(key, v)
-				d2 := arrayDict.Set(key, v)
+				d2 := arrayDict.Set(key, v, keyHash)
 				dicts = append(dicts, d1)
 				arrayDicts = append(arrayDicts, d2)
 			}
