@@ -160,9 +160,9 @@ func Forall[T any](cond func(T) bool) Reducer[T, bool] {
 	}
 }
 
-// Do executes the function f for all elements in the input until an error occurs.
+// DoErr executes the function f for all elements in the input until an error occurs.
 // If an error occurs, it is returned.
-func Do[A any](f func(A) error) Reducer[A, error] {
+func DoErr[A any](f func(A) error) Reducer[A, error] {
 	return func() ReducerInstance[A, error] {
 		var err error
 		return ReducerInstance[A, error]{
@@ -172,6 +172,21 @@ func Do[A any](f func(A) error) Reducer[A, error] {
 			Step: func(a A) bool {
 				err = f(a)
 				return err == nil
+			},
+		}
+	}
+}
+
+// Do executes the function f for all elements in the input.
+func Do[A any](f func(A)) Reducer[A, struct{}] {
+	return func() ReducerInstance[A, struct{}] {
+		return ReducerInstance[A, struct{}]{
+			Complete: func() struct{} {
+				return struct{}{}
+			},
+			Step: func(a A) bool {
+				f(a)
+				return true
 			},
 		}
 	}

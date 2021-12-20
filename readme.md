@@ -1,5 +1,7 @@
 # Go-fun
 
+![pipeline status](https://github.com/peterzeller/go-fun/actions/workflows/go.yml/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/peterzeller/go-fun/badge.svg)](https://coveralls.io/github/peterzeller/go-fun)
+
 Utilities and immutable collections for functional programming in Golang.
 
 This is an experimental library to play with the new Generics Feature in Go 1.18.
