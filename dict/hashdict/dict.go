@@ -33,3 +33,14 @@ func (d Dict[K, V]) Set(key K, value V) Dict[K, V] {
 	}
 	return Dict[K, V]{newRoot, d.keyEq}
 }
+
+func (d Dict[K, V]) Remove(key K) Dict[K, V] {
+	newRoot, changed := d.root.removed0(key, d.keyEq.Hash(key), 0, d.keyEq)
+	if !changed {
+		return d
+	}
+	if newRoot == nil {
+		panic(fmt.Errorf("newRoot is nil"))
+	}
+	return Dict[K, V]{newRoot, d.keyEq}
+}

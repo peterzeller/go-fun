@@ -45,7 +45,7 @@ func (d ArrayDict[K, V]) Set(key K, value V, keyEq equality.Equality[K]) ArrayDi
 	return ArrayDict[K, V]{entries: newEntries}
 }
 
-func (d ArrayDict[K, V]) Remove(key K, keyEq equality.Equality[K]) ArrayDict[K, V] {
+func (d ArrayDict[K, V]) Remove(key K, keyEq equality.Equality[K]) (ArrayDict[K, V], bool) {
 	index := -1
 	for i, e := range d.entries {
 		if keyEq.Equal(key, e.Key) {
@@ -55,13 +55,20 @@ func (d ArrayDict[K, V]) Remove(key K, keyEq equality.Equality[K]) ArrayDict[K, 
 	}
 	if index == -1 {
 		// not found -> unchanged
-		return d
+		return d, false
 	}
 	newEntries := make([]dict.Entry[K, V], 0, len(d.entries)-1)
 	newEntries = append(append(newEntries, d.entries[:index]...), d.entries[index+1:]...)
-	return ArrayDict[K, V]{entries: newEntries}
+	return ArrayDict[K, V]{entries: newEntries}, true
 }
 
 func (d ArrayDict[K, V]) Size() int {
 	return len(d.entries)
+}
+
+func (d ArrayDict[K, V]) First() dict.Entry[K, V] {
+	if len(d.entries) == 0 {
+		return zero.Value[dict.Entry[K, V]]()
+	}
+	return d.entries[0]
 }

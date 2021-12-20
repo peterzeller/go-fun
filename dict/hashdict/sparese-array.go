@@ -75,3 +75,22 @@ func (a sparseArray[T]) set(i int, value T) (res sparseArray[T]) {
 	}
 	return
 }
+
+func (a sparseArray[T]) remove(i int) sparseArray[T] {
+	mask := uint32(1) << i
+	if a.bitmap&mask == 0 {
+		// removed index does not exist -> unchanged
+		return a
+	}
+	var res sparseArray[T]
+	// remove from bitmap
+	res.bitmap = a.bitmap & (^mask)
+	// remove from array
+	realIndex := bits.OnesCount32(uint32(a.bitmap & (mask - 1)))
+	res.values = append(append(res.values, a.values[:realIndex]...), a.values[realIndex+1:]...)
+	return res
+}
+
+func (a sparseArray[T]) size() int {
+	return len(a.values)
+}

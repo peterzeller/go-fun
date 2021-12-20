@@ -4,6 +4,7 @@ import (
 	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/dict/arraydict"
 	"github.com/peterzeller/go-fun/v2/equality"
+	"github.com/peterzeller/go-fun/v2/hash"
 	"github.com/peterzeller/go-fun/v2/zero"
 )
 
@@ -11,6 +12,8 @@ type node[K, V any] interface {
 	size() int
 	get0(key K, hash int64, level int, eq equality.Equality[K]) (V, bool)
 	updated0(key K, hash int64, level int, value V, eq equality.Equality[K]) node[K, V]
+	removed0(key K, hash int64, level int, eq hash.EqHash[K]) (node[K, V], bool)
+	first() (*dict.Entry[K, V], int64)
 }
 
 // empty node
@@ -168,4 +171,98 @@ func makeTrie[K, V any](aHash int64, a node[K, V], bHash int64, b node[K, V], le
 			count: size,
 		}
 	}
+}
+
+func (e empty[K, V]) removed0(key K, hash int64, level int, eq hash.EqHash[K]) (node[K, V], bool) {
+	return e, false
+}
+
+func (e singleton[K, V]) removed0(key K, hash int64, level int, eq hash.EqHash[K]) (node[K, V], bool) {
+	if e.hash == hash && eq.Equal(key, e.entry.Key) {
+		return empty[K, V]{}, true
+	}
+	return e, false
+}
+
+func (e bucket[K, V]) removed0(key K, hash int64, level int, eq hash.EqHash[K]) (node[K, V], bool) {
+	if hash != e.hash {
+		return e, false
+	}
+	newEntries, changed := e.entries.Remove(key, eq)
+	if !changed {
+		return e, false
+	}
+	switch newEntries.Size() {
+	case 0:
+		return empty[K, V]{}, true
+	case 1:
+		return singleton[K, V]{hash: hash, entry: newEntries.First()}, true
+	default:
+		return bucket[K, V]{
+			hash:    hash,
+			entries: newEntries,
+		}, true
+	}
+}
+
+func (e trie[K, V]) removed0(key K, hash int64, level int, eq hash.EqHash[K]) (node[K, V], bool) {
+	index := index(hash, level)
+	if c, ok := e.children.get(index); ok {
+		newC, changed := c.removed0(key, hash, level+5, eq)
+		if !changed {
+			return e, false
+		}
+		newChildren := e.children
+		if newC.size() == 0 {
+			newChildren = e.children.remove(index)
+			// check if we can simplify this node even more
+			switch newChildren.size() {
+			case 0:
+				// size 0 -> simplify to empty
+				return empty[K, V]{}, true
+			case 1:
+				// size 1 -> simplify to singleton
+				singleEntry, singleHash := getFirst(newChildren)
+				return singleton[K, V]{hash: singleHash, entry: *singleEntry}, true
+			}
+		} else {
+			newChildren = e.children.set(index, newC)
+		}
+		return trie[K, V]{
+			children: newChildren,
+			count:    e.count + (newC.size() - c.size()),
+		}, true
+	}
+	// index not in array -> unchanged
+	return e, false
+}
+
+func (e empty[K, V]) first() (*dict.Entry[K, V], int64) {
+	return nil, 0
+}
+
+func (e singleton[K, V]) first() (*dict.Entry[K, V], int64) {
+	return &e.entry, e.hash
+}
+
+func (e bucket[K, V]) first() (*dict.Entry[K, V], int64) {
+	if e.entries.Size() == 0 {
+		return nil, 0
+	}
+	f := e.entries.First()
+	return &f, e.hash
+}
+
+func (e trie[K, V]) first() (*dict.Entry[K, V], int64) {
+	return getFirst(e.children)
+}
+
+func getFirst[K, V any](ar sparseArray[node[K, V]]) (*dict.Entry[K, V], int64) {
+	for _, c := range ar.values {
+		f, h := c.first()
+		if f != nil {
+			return f, h
+		}
+	}
+	return nil, 0
 }
