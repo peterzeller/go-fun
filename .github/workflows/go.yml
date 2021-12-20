@@ -27,4 +27,8 @@ jobs:
       run: go1.18beta1 build -v ./...
 
     - name: Test
-      run: go1.18beta1 test -v ./...
+      run: go1.18beta1 test -v -covermode atomic -coverprofile=profile.cov ./...
+
+    - uses: shogo82148/actions-goveralls@v1
+      with:
+        path-to-profile: profile.cov
