@@ -16,6 +16,7 @@ type node[K, V any] interface {
 	removed0(key K, hash int64, level int, eq hash.EqHash[K]) (node[K, V], bool)
 	first() (*dict.Entry[K, V], int64)
 	iterator() iterable.Iterator[dict.Entry[K, V]]
+	// TODO merge(other node[K, V], mergeFun func(K, *V, *V) *V, level int, eq hash.EqHash[K]) node[K, V]
 }
 
 // empty node
@@ -310,3 +311,27 @@ func (e trie[K, V]) iterator() iterable.Iterator[dict.Entry[K, V]] {
 		}
 	})
 }
+
+// TODO implement merge
+// func (e empty[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, level int, eq hash.EqHash[K]) node[K, V] {
+// 	return other.filterMap(func(key K, value V) *V {
+// 		return mergeFun(key, nil, &value)
+// 	})
+// }
+
+// func (e singleton[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
+// 	switch other2 := other.(type) {
+// 	case empty[K, V]:
+// 		return e.filterMap(func(key K, value V) *V {
+// 			return mergeFun(key, nil, &value)
+// 		})
+// 	}
+// }
+
+// func (e bucket[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
+
+// }
+
+// func (e trie[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
+
+// }
