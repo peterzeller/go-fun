@@ -5,6 +5,7 @@ import (
 
 	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/hash"
+	"github.com/peterzeller/go-fun/v2/iterable"
 )
 
 // adapted from https://github.com/andrewoma/dexx/blob/master/collection/src/main/java/com/github/andrewoma/dexx/collection/internal/hashmap/CompactHashMap.java
@@ -43,4 +44,8 @@ func (d Dict[K, V]) Remove(key K) Dict[K, V] {
 		panic(fmt.Errorf("newRoot is nil"))
 	}
 	return Dict[K, V]{newRoot, d.keyEq}
+}
+
+func (d Dict[K, V]) Iterator() iterable.Iterator[dict.Entry[K, V]] {
+	return d.root.iterator()
 }

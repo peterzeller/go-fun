@@ -75,6 +75,9 @@ func TestDictGetSet(t *testing.T) {
 				dicts = append(dicts, d1)
 				arrayDicts = append(arrayDicts, d2)
 			}
+			for i := range dicts {
+				assertDictsEqual(t, arrayDicts[i], dicts[i])
+			}
 		}
 	})
 }
@@ -121,4 +124,25 @@ func TestDictGetSetRemove(t *testing.T) {
 			}
 		}
 	})
+}
+
+func assertDictsEqual(t require.TestingT, a arraydict.ArrayDict[key, int], b hashdict.Dict[key, int]) {
+	for it := a.Iterator(); ; {
+		ae, ok := it.Next()
+		if !ok {
+			break
+		}
+		bv, ok := b.Get(ae.Key)
+		require.True(t, ok, "Key %+v exists in b but not in a", ae.Key)
+		require.Equal(t, ae.Value, bv)
+	}
+	for it := b.Iterator(); ; {
+		be, ok := it.Next()
+		if !ok {
+			break
+		}
+		av, ok := a.Get(be.Key, keyHash)
+		require.True(t, ok, "Key %+v exists in a but not in b", be.Key)
+		require.Equal(t, be.Value, av, "Key %+v has different values for b and a", be.Key)
+	}
 }
