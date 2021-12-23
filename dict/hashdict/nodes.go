@@ -5,6 +5,7 @@ import (
 	"github.com/peterzeller/go-fun/v2/dict/arraydict"
 	"github.com/peterzeller/go-fun/v2/equality"
 	"github.com/peterzeller/go-fun/v2/hash"
+	"github.com/peterzeller/go-fun/v2/iterable"
 	"github.com/peterzeller/go-fun/v2/zero"
 )
 
@@ -14,6 +15,8 @@ type node[K, V any] interface {
 	updated0(key K, hash int64, level int, value V, eq equality.Equality[K]) node[K, V]
 	removed0(key K, hash int64, level int, eq hash.EqHash[K]) (node[K, V], bool)
 	first() (*dict.Entry[K, V], int64)
+	iterator() iterable.Iterator[dict.Entry[K, V]]
+	// TODO merge(other node[K, V], mergeFun func(K, *V, *V) *V, level int, eq hash.EqHash[K]) node[K, V]
 }
 
 // empty node
@@ -266,3 +269,69 @@ func getFirst[K, V any](ar sparseArray[node[K, V]]) (*dict.Entry[K, V], int64) {
 	}
 	return nil, 0
 }
+
+func (e empty[K, V]) iterator() iterable.Iterator[dict.Entry[K, V]] {
+	return iterable.Fun[dict.Entry[K, V]](func() (dict.Entry[K, V], bool) {
+		return zero.Value[dict.Entry[K, V]](), false
+	})
+}
+
+func (e singleton[K, V]) iterator() iterable.Iterator[dict.Entry[K, V]] {
+	init := true
+	return iterable.Fun[dict.Entry[K, V]](func() (dict.Entry[K, V], bool) {
+		if init {
+			init = false
+			return e.entry, true
+		}
+		return zero.Value[dict.Entry[K, V]](), false
+	})
+}
+
+func (e bucket[K, V]) iterator() iterable.Iterator[dict.Entry[K, V]] {
+	return e.entries.Iterator()
+}
+
+func (e trie[K, V]) iterator() iterable.Iterator[dict.Entry[K, V]] {
+	pos := 0
+	var childIterator iterable.Iterator[dict.Entry[K, V]] = nil
+	return iterable.Fun[dict.Entry[K, V]](func() (dict.Entry[K, V], bool) {
+		for {
+			if childIterator != nil {
+				if res, ok := childIterator.Next(); ok {
+					return res, true
+				}
+				pos++
+				childIterator = nil
+			}
+			if pos < e.children.size() {
+				childIterator = e.children.values[pos].iterator()
+			} else {
+				return zero.Value[dict.Entry[K, V]](), false
+			}
+		}
+	})
+}
+
+// TODO implement merge
+// func (e empty[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, level int, eq hash.EqHash[K]) node[K, V] {
+// 	return other.filterMap(func(key K, value V) *V {
+// 		return mergeFun(key, nil, &value)
+// 	})
+// }
+
+// func (e singleton[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
+// 	switch other2 := other.(type) {
+// 	case empty[K, V]:
+// 		return e.filterMap(func(key K, value V) *V {
+// 			return mergeFun(key, nil, &value)
+// 		})
+// 	}
+// }
+
+// func (e bucket[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
+
+// }
+
+// func (e trie[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
+
+// }

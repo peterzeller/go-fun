@@ -3,6 +3,7 @@ package arraydict
 import (
 	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/equality"
+	"github.com/peterzeller/go-fun/v2/iterable"
 	"github.com/peterzeller/go-fun/v2/zero"
 )
 
@@ -71,4 +72,16 @@ func (d ArrayDict[K, V]) First() dict.Entry[K, V] {
 		return zero.Value[dict.Entry[K, V]]()
 	}
 	return d.entries[0]
+}
+
+func (d ArrayDict[K, V]) Iterator() iterable.Iterator[dict.Entry[K, V]] {
+	pos := 0
+	return iterable.Fun[dict.Entry[K, V]](func() (dict.Entry[K, V], bool) {
+		if pos < len(d.entries) {
+			res := d.entries[pos]
+			pos++
+			return res, true
+		}
+		return zero.Value[dict.Entry[K, V]](), false
+	})
 }

@@ -1,6 +1,11 @@
 package hash
 
-import "github.com/peterzeller/go-fun/v2/equality"
+import (
+	"encoding/gob"
+	"hash/fnv"
+
+	"github.com/peterzeller/go-fun/v2/equality"
+)
 
 // EqHash compines an equals function with a Hash function
 type EqHash[T any] interface {
@@ -41,6 +46,36 @@ func Num[T Number]() EqHash[T] {
 		},
 		H: func(a T) int64 {
 			return int64(a)
+		},
+	}
+}
+
+var stringEq EqHash[string] = Fun[string]{
+	Eq: func(a, b string) bool {
+		return a == b
+	},
+	H: func(a string) int64 {
+		h := fnv.New64a()
+		h.Write([]byte(a))
+		return int64(h.Sum64())
+	},
+}
+
+func String() EqHash[string] {
+	return stringEq
+}
+
+// Gob encoding based hash code
+func Gob[T comparable]() EqHash[T] {
+	return Fun[T]{
+		Eq: func(a, b T) bool {
+			return a == b
+		},
+		H: func(a T) int64 {
+			h := fnv.New64a()
+			d := gob.NewEncoder(h)
+			d.Encode(a)
+			return int64(h.Sum64())
 		},
 	}
 }

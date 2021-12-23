@@ -9,15 +9,49 @@ This is an experimental library to play with the new Generics Feature in Go 1.18
 
 ## Features
 
-- Reducers for transforming data (map, filter, group by, etc)
 - Immutable data structures
     - List
+	- Dict
+		- HashDict
+	- Set
+		- HashSet
 - Mutable data structures
     - Stack
 - Iterable abstraction
-- Equality type class
+- Reducers for transforming data (map, filter, group by, etc)
+- Equality and Hash type classes
+
+## Why immutable collections?
+
+- Immutable data is thread-safe by default
+- Immutable data structures are more efficient than copying data to prevent unwanted modification
+- Use immutable data structures at API boundaries to make it clear that data cannot be modified.
+- Updated versions of a data structure share underlying state, which makes them more memory efficient when keeping multiple versions (in recursive algorithms, in search algorithms, for undo/history functionality)
+
 
 ## Examples
+
+### Immutable Dict
+
+	d0 := hashdict.New[string, int](hash.String())
+
+	d1 := d0.Set("a", 1)
+	d2 := d1.Set("b", 42)
+	d3 := d2.Set("a", 7)
+
+	require.Equal(t, 1, d1.GetOrZero("a"))
+	require.Equal(t, 1, d2.GetOrZero("a"))
+	require.Equal(t, 7, d3.GetOrZero("a"))
+
+	require.Equal(t, 0, d1.GetOrZero("b"))
+	require.Equal(t, 42, d2.GetOrZero("b"))
+	require.Equal(t, 42, d3.GetOrZero("b"))
+
+
+### Immutable Set
+
+
+### Reducers
 
 Take a slice of books and return a map where the keys are authors and the values contain all the titles of the books the author has written in or after the year 2000.
 

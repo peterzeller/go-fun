@@ -75,6 +75,9 @@ func TestDictGetSet(t *testing.T) {
 				dicts = append(dicts, d1)
 				arrayDicts = append(arrayDicts, d2)
 			}
+			for i := range dicts {
+				assertDictsEqual(t, arrayDicts[i], dicts[i])
+			}
 		}
 	})
 }
@@ -121,4 +124,41 @@ func TestDictGetSetRemove(t *testing.T) {
 			}
 		}
 	})
+}
+
+func assertDictsEqual(t require.TestingT, a arraydict.ArrayDict[key, int], b hashdict.Dict[key, int]) {
+	for it := a.Iterator(); ; {
+		ae, ok := it.Next()
+		if !ok {
+			break
+		}
+		bv, ok := b.Get(ae.Key)
+		require.True(t, ok, "Key %+v exists in b but not in a", ae.Key)
+		require.Equal(t, ae.Value, bv)
+	}
+	for it := b.Iterator(); ; {
+		be, ok := it.Next()
+		if !ok {
+			break
+		}
+		av, ok := a.Get(be.Key, keyHash)
+		require.True(t, ok, "Key %+v exists in a but not in b", be.Key)
+		require.Equal(t, be.Value, av, "Key %+v has different values for b and a", be.Key)
+	}
+}
+
+func TestExample(t *testing.T) {
+	d0 := hashdict.New[string, int](hash.String())
+
+	d1 := d0.Set("a", 1)
+	d2 := d1.Set("b", 42)
+	d3 := d2.Set("a", 7)
+
+	require.Equal(t, 1, d1.GetOrZero("a"))
+	require.Equal(t, 1, d2.GetOrZero("a"))
+	require.Equal(t, 7, d3.GetOrZero("a"))
+
+	require.Equal(t, 0, d1.GetOrZero("b"))
+	require.Equal(t, 42, d2.GetOrZero("b"))
+	require.Equal(t, 42, d3.GetOrZero("b"))
 }
