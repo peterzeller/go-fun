@@ -29,6 +29,11 @@ func (d ArrayDict[K, V]) Get(key K, keyEq equality.Equality[K]) (V, bool) {
 	return zero.Value[V](), false
 }
 
+func (d ArrayDict[K, V]) ContainsKey(key K, keyEq equality.Equality[K]) bool {
+	_, r := d.Get(key, keyEq)
+	return r
+}
+
 func (d ArrayDict[K, V]) Set(key K, value V, keyEq equality.Equality[K]) ArrayDict[K, V] {
 	newEntries := make([]dict.Entry[K, V], 0, len(d.entries)+1)
 	found := false
@@ -84,4 +89,15 @@ func (d ArrayDict[K, V]) Iterator() iterable.Iterator[dict.Entry[K, V]] {
 		}
 		return zero.Value[dict.Entry[K, V]](), false
 	})
+}
+
+func FilterMap[K, A, B any](d ArrayDict[K, A], f func(K, A) (B, bool)) ArrayDict[K, B] {
+	res := make([]dict.Entry[K, B], 0)
+	for _, e := range d.entries {
+		newV, keep := f(e.Key, e.Value)
+		if keep {
+			res = append(res, dict.Entry[K, B]{Key: e.Key, Value: newV})
+		}
+	}
+	return ArrayDict[K, B]{res}
 }

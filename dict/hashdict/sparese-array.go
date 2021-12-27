@@ -4,6 +4,7 @@ import (
 	"math/bits"
 
 	"github.com/peterzeller/go-fun/v2/dict"
+	"github.com/peterzeller/go-fun/v2/iterable"
 	"github.com/peterzeller/go-fun/v2/reducer"
 	"github.com/peterzeller/go-fun/v2/zero"
 )
@@ -93,4 +94,41 @@ func (a sparseArray[T]) remove(i int) sparseArray[T] {
 
 func (a sparseArray[T]) size() int {
 	return len(a.values)
+}
+
+func sparseArrayFilterMap[A, B any](a sparseArray[A], f func(int, A) (B, bool)) sparseArray[B] {
+	bitmap := uint32(0)
+	values := make([]B, 0)
+	j := 0
+	for i := 0; i < 32; i++ {
+		mask := uint32(1) << i
+		if a.bitmap&mask == 0 {
+			continue
+		}
+		newV, keep := f(i, a.values[j])
+		j++
+		if keep {
+			bitmap = bitmap | mask
+			values = append(values, newV)
+		}
+	}
+	return sparseArray[B]{
+		bitmap: bitmap,
+		values: values,
+	}
+}
+
+func (a sparseArray[T]) Iterator() iterable.Iterator[dict.Entry[int, T]] {
+	i := 0
+	return iterable.Fun[dict.Entry[int, T]](func() (dict.Entry[int, T], bool) {
+		for i < 32 {
+			if v, ok := a.get(i); ok {
+				res := dict.Entry[int, T]{Key: i, Value: v}
+				i++
+				return res, true
+			}
+			i++
+		}
+		return zero.Value[dict.Entry[int, T]](), false
+	})
 }

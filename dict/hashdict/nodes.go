@@ -1,6 +1,8 @@
 package hashdict
 
 import (
+	"fmt"
+
 	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/dict/arraydict"
 	"github.com/peterzeller/go-fun/v2/equality"
@@ -16,7 +18,7 @@ type node[K, V any] interface {
 	removed0(key K, hash int64, level int, eq hash.EqHash[K]) (node[K, V], bool)
 	first() (*dict.Entry[K, V], int64)
 	iterator() iterable.Iterator[dict.Entry[K, V]]
-	// TODO merge(other node[K, V], mergeFun func(K, *V, *V) *V, level int, eq hash.EqHash[K]) node[K, V]
+	checkInvariant(level int, prefix int64, eq hash.EqHash[K]) error
 }
 
 // empty node
@@ -157,6 +159,7 @@ func (e trie[K, V]) updated0(key K, hash int64, level int, value V, eq equality.
 	}
 }
 
+// makeTrie creates a trie from two buckets/singletons
 func makeTrie[K, V any](aHash int64, a node[K, V], bHash int64, b node[K, V], level int, size int, eq equality.Equality[K]) node[K, V] {
 	indexA := index(aHash, level)
 	indexB := index(bHash, level)
@@ -312,26 +315,353 @@ func (e trie[K, V]) iterator() iterable.Iterator[dict.Entry[K, V]] {
 	})
 }
 
-// TODO implement merge
-// func (e empty[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, level int, eq hash.EqHash[K]) node[K, V] {
-// 	return other.filterMap(func(key K, value V) *V {
-// 		return mergeFun(key, nil, &value)
-// 	})
-// }
+func filterMap[K, A, B any](dictNode node[K, A], level int, eq hash.EqHash[K], f func(K, A) (B, bool)) node[K, B] {
+	if f == nil {
+		return empty[K, B]{}
+	}
+	switch e := dictNode.(type) {
+	case empty[K, A]:
+		return empty[K, B]{}
+	case singleton[K, A]:
+		newV, keep := f(e.entry.Key, e.entry.Value)
+		if !keep {
+			return empty[K, B]{}
+		}
+		return singleton[K, B]{
+			hash: e.hash,
+			entry: dict.Entry[K, B]{
+				Key:   e.entry.Key,
+				Value: newV,
+			},
+		}
+	case bucket[K, A]:
+		newEntries := arraydict.FilterMap(e.entries, f)
+		switch newEntries.Size() {
+		case 0:
+			return empty[K, B]{}
+		case 1:
+			first := newEntries.First()
+			return singleton[K, B]{hash: e.hash, entry: first}
+		default:
+			return bucket[K, B]{
+				hash:    e.hash,
+				entries: newEntries,
+			}
+		}
+	case trie[K, A]:
+		newChildren := sparseArrayFilterMap(e.children, func(i int, n node[K, A]) (node[K, B], bool) {
+			// recursive call
+			newN := filterMap(n, level+5, eq, f)
+			return newN, newN.size() > 0
+		})
+		switch newChildren.size() {
+		case 0:
+			return empty[K, B]{}
+		case 1:
+			return newChildren.values[0]
+		default:
+			return trie[K, B]{
+				children: newChildren,
+			}
+		}
+	}
+	panic(fmt.Errorf("unhandled case %+v", dictNode))
+}
 
-// func (e singleton[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
-// 	switch other2 := other.(type) {
-// 	case empty[K, V]:
-// 		return e.filterMap(func(key K, value V) *V {
-// 			return mergeFun(key, nil, &value)
-// 		})
-// 	}
-// }
+type mergeOpts[K, A, B, C any] struct {
+	eq        hash.EqHash[K]
+	mergeFun  func(K, A, B) (C, bool)
+	mergeFun2 func(K, B, A) (C, bool)
+	// if transform functions are nil, the respective entries will be omitted
+	transformA func(K, A) (C, bool)
+	transformB func(K, B) (C, bool)
+}
 
-// func (e bucket[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
+func (o mergeOpts[K, A, B, C]) swap() mergeOpts[K, B, A, C] {
+	return mergeOpts[K, B, A, C]{
+		eq:         o.eq,
+		mergeFun:   o.mergeFun2,
+		mergeFun2:  o.mergeFun,
+		transformA: o.transformB,
+		transformB: o.transformA,
+	}
+}
 
-// }
+func (o mergeOpts[K, A, B, C]) applyA(key K, a A) (C, bool) {
+	if o.transformA == nil {
+		return zero.Value[C](), false
+	}
+	return o.transformA(key, a)
+}
 
-// func (e trie[K, V]) merge(other node[K, V], mergeFun func(K, *V, *V) *V, eq hash.EqHash[K]) node[K, V] {
+func (o mergeOpts[K, A, B, C]) applyB(key K, b B) (C, bool) {
+	if o.transformB == nil {
+		return zero.Value[C](), false
+	}
+	return o.transformB(key, b)
+}
 
-// }
+func trieArrayToNode[K, V any](ar sparseArray[node[K, V]]) node[K, V] {
+	if ar.size() == 0 {
+		return empty[K, V]{}
+	}
+	count := 0
+	for _, c := range ar.values {
+		count += c.size()
+	}
+	return trie[K, V]{children: ar, count: count}
+}
+
+func hashAndDictToNode[K, V any](hash int64, d arraydict.ArrayDict[K, V]) node[K, V] {
+	switch d.Size() {
+	case 0:
+		return empty[K, V]{}
+	case 1:
+		return singleton[K, V]{
+			hash:  hash,
+			entry: d.First(),
+		}
+	default:
+		return bucket[K, V]{
+			hash:    hash,
+			entries: d,
+		}
+	}
+}
+
+func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt mergeOpts[K, A, B, C]) node[K, C] {
+	// switch handles the following cases:
+	//           | empty | singleton | bucket | trie
+	// empty     | x     | x         | x      | x
+	// singleton |       | x         | x      | x
+	// bucket    |       |           | x      | x
+	// trie      |       |           |        | x
+	// all other cases are handled by a recursive call with swapped parameters
+
+	switch a := nodeA.(type) {
+	case empty[K, A]:
+		if opt.transformB == nil {
+			return empty[K, C]{}
+		}
+		return filterMap(nodeB, level, opt.eq, opt.transformB)
+	case singleton[K, A]:
+		switch b := nodeB.(type) {
+		case empty[K, B]:
+			return merge(nodeB, nodeA, level, opt.swap())
+		case singleton[K, B]:
+
+			if a.hash == b.hash {
+				// hash collision
+				if opt.eq.Equal(a.entry.Key, b.entry.Key) {
+					// same key -> merge
+					merged, keep := opt.mergeFun(a.entry.Key, a.entry.Value, b.entry.Value)
+					if keep {
+						return singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{a.entry.Key, merged}}
+					}
+					return empty[K, C]{}
+				}
+			}
+			aNew, keepA := opt.applyA(a.entry.Key, a.entry.Value)
+			bNew, keepB := opt.applyB(b.entry.Key, b.entry.Value)
+			if keepA && keepB {
+				if a.hash != b.hash {
+					// different hashes -> create trie
+					return makeTrie[K, C](a.hash, singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{a.entry.Key, aNew}},
+						b.hash, singleton[K, C]{hash: b.hash, entry: dict.Entry[K, C]{b.entry.Key, bNew}}, level, 2, opt.eq)
+				}
+				// same hashes -> create bucket
+				return bucket[K, C]{
+					hash: a.hash,
+					entries: arraydict.New(
+						dict.Entry[K, C]{a.entry.Key, aNew},
+						dict.Entry[K, C]{b.entry.Key, bNew}),
+				}
+			}
+			if keepA {
+				return singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{a.entry.Key, aNew}}
+			}
+			if keepB {
+				return singleton[K, C]{hash: b.hash, entry: dict.Entry[K, C]{b.entry.Key, bNew}}
+			}
+			return empty[K, C]{}
+		case bucket[K, B]:
+			if a.hash == b.hash {
+				// hash-collision -> update bucket
+				arraydict.FilterMap(b.entries, func(key K, bv B) (C, bool) {
+					if opt.eq.Equal(key, a.entry.Key) {
+						return opt.mergeFun(key, a.entry.Value, bv)
+					}
+					return opt.applyB(key, bv)
+				})
+			}
+			// different hashes -> create trie
+			aNew, keepA := opt.applyA(a.entry.Key, a.entry.Value)
+			bNew := filterMap[K, B](b, level, opt.eq, opt.transformB)
+			if !keepA {
+				return bNew
+			}
+			return makeTrie[K, C](a.hash, singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{a.entry.Key, aNew}},
+				b.hash, bNew, level, 2, opt.eq)
+		case trie[K, B]:
+			aIndex := index(a.hash, level)
+			bNew := sparseArrayFilterMap(b.children, func(i int, n node[K, B]) (node[K, C], bool) {
+				var newNode node[K, C]
+				if i == aIndex {
+					newNode = merge(nodeA, n, level+5, opt)
+				} else {
+					if opt.transformB == nil {
+						newNode = empty[K, C]{}
+					} else {
+						newNode = filterMap(n, level+5, opt.eq, opt.transformB)
+					}
+				}
+				return newNode, newNode.size() > 0
+			})
+			return trieArrayToNode(bNew)
+		}
+	case bucket[K, A]:
+		switch b := nodeB.(type) {
+		case empty[K, B]:
+			return merge(nodeB, nodeA, level, opt.swap())
+		case singleton[K, B]:
+			return merge(nodeB, nodeA, level, opt.swap())
+		case bucket[K, B]:
+			if a.hash == b.hash {
+				// hash-collision -> update bucket
+				newDict := arraydict.FilterMap(a.entries, func(key K, av A) (C, bool) {
+					if bv, ok := b.entries.Get(key, opt.eq); ok {
+						return opt.mergeFun(key, av, bv)
+					}
+					return opt.applyA(key, av)
+				})
+				if opt.transformB != nil {
+					// add entries appearing in b but not in a
+					for it := iterable.Start[dict.Entry[K, B]](b.entries); it.HasNext(); it.Next() {
+						if !newDict.ContainsKey(it.Current().Key, opt.eq) {
+							newV, keep := opt.transformB(it.Current().Key, it.Current().Value)
+							if keep {
+								newDict = newDict.Set(it.Current().Key, newV, opt.eq)
+							}
+						}
+					}
+
+				}
+				return hashAndDictToNode(a.hash, newDict)
+			}
+			// different hashes -> create trie
+			aNew := filterMap[K, A](a, level, opt.eq, opt.transformA)
+			bNew := filterMap[K, B](b, level, opt.eq, opt.transformB)
+			return makeTrie[K, C](a.hash, aNew, b.hash, bNew, level, 2, opt.eq)
+		case trie[K, B]:
+			aIndex := index(a.hash, level)
+			bNew := sparseArrayFilterMap(b.children, func(i int, n node[K, B]) (node[K, C], bool) {
+				var newNode node[K, C]
+				if i == aIndex {
+					newNode = merge(nodeA, n, level+5, opt)
+				} else {
+					if opt.transformB == nil {
+						newNode = empty[K, C]{}
+					} else {
+						newNode = filterMap(n, level+5, opt.eq, opt.transformB)
+					}
+				}
+				return newNode, newNode.size() > 0
+			})
+			return trieArrayToNode(bNew)
+		}
+
+	case trie[K, A]:
+		switch b := nodeB.(type) {
+		case empty[K, B]:
+			return merge(nodeB, nodeA, level, opt.swap())
+		case singleton[K, B]:
+			return merge(nodeB, nodeA, level, opt.swap())
+		case bucket[K, B]:
+			return merge(nodeB, nodeA, level, opt.swap())
+		case trie[K, B]:
+			newEntries := make([]dict.Entry[int, node[K, C]], 0)
+			for i := 0; i < 32; i++ {
+				var merged node[K, C]
+				if aChild, ok := a.children.get(i); ok {
+					if bChild, ok := b.children.get(i); ok {
+						merged = merge(aChild, bChild, level+5, opt)
+					} else {
+						if opt.transformA != nil {
+							merged = filterMap(aChild, level+5, opt.eq, opt.transformA)
+						}
+					}
+				} else {
+					if bChild, ok := b.children.get(i); ok {
+						if opt.transformB != nil {
+							merged = filterMap(bChild, level+5, opt.eq, opt.transformB)
+						}
+					}
+				}
+				if merged != nil && merged.size() > 0 {
+					newEntries = append(newEntries, dict.Entry[int, node[K, C]]{i, merged})
+				}
+			}
+			if len(newEntries) == 0 {
+				return empty[K, C]{}
+			}
+			count := 0
+			for _, e := range newEntries {
+				count += e.Value.size()
+			}
+			return trie[K, C]{
+				children: newSparseArraySorted[node[K, C]](newEntries...),
+				count:    count,
+			}
+		}
+	}
+	panic(fmt.Errorf("unhandled case %+v, %+v", nodeA, nodeB))
+}
+
+func (e empty[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) error {
+	return nil
+}
+
+func (e singleton[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) error {
+	if e.hash != eq.Hash((e.entry.Key)) {
+		return fmt.Errorf("wrong hash in singleton")
+	}
+	if e.hash<<(64-level) != prefix<<(64-level) {
+		return fmt.Errorf("prefix for hash does not match in singleton %b - (prefix %b) at level %d", uint64(e.hash), uint64(prefix), level)
+	}
+	return nil
+}
+
+func (e bucket[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) error {
+	for it := iterable.Start[dict.Entry[K, V]](e.entries); it.HasNext(); it.Next() {
+		if e.hash != eq.Hash((it.Current().Key)) {
+			return fmt.Errorf("wrong hash in bucket")
+		}
+	}
+	if e.hash<<(64-level) != prefix<<(64-level) {
+		return fmt.Errorf("prefix for hash does not match in bucket %b (prefix %b) at level %d", uint64(e.hash), uint64(prefix), level)
+	}
+	if e.size() <= 1 {
+		return fmt.Errorf("bucket with %d elements", e.size())
+	}
+	return nil
+}
+
+func (e trie[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) error {
+	count := 0
+	for it := iterable.Start[dict.Entry[int, node[K, V]]](e.children); it.HasNext(); it.Next() {
+		i := it.Current().Key
+		c := it.Current().Value
+		count += c.size()
+		err := c.checkInvariant(level+5, prefix|(int64(i)<<level), eq)
+		if err != nil {
+			return fmt.Errorf("invalid node at index %d: %w", i, err)
+		}
+	}
+	if count != e.count {
+		return fmt.Errorf("Wrong count in trie: %d (should be %d)", e.count, count)
+	}
+	if count == 0 {
+		return fmt.Errorf("empty trie")
+	}
+	return nil
+}

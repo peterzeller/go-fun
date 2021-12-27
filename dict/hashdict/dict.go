@@ -90,94 +90,90 @@ func (d Dict[K, V]) Size() int {
 	return d.root.size()
 }
 
-// MergeAll merges the given collection of entries into this dictionary.
-// The given mergeFun is called for all entries that exist in either side.
-// The result returned by the mergeFun determines the new value in the merged dictionary.
-// If the merge function returns nil, the value is removed for the result map.
-// If an entry does not exist in one map it is given as a nil value in the merge function.
-func (d Dict[K, V]) MergeAll(other iterable.Iterable[dict.Entry[K, V]], mergeFun func(K, *V, *V) *V) Dict[K, V] {
-	// TODO optimize mergint with dicts
-	// switch otherD := other.(type) {
-	// case Dict[K, V]:
-	// 	if otherD.keyEq == d.keyEq {
-	// 		// special merge with other hash dictionaries using the same key:
-	// 		newRoot := d.root.merge(otherD.root, mergeFun, d.keyEq)
-	// 		return Dict[K, V]{newRoot, d.keyEq}
-	// 	}
-	// }
-	res := New[K, V](d.keyEq)
-	keys := New[K, struct{}](d.keyEq)
-	// handle entries in other
-	for it := other.Iterator(); ; {
-		e, ok := it.Next()
-		if !ok {
-			break
-		}
-		dv, ok := d.Get(e.Key)
-		var newV *V
-		if ok {
-			newV = mergeFun(e.Key, &dv, &e.Value)
-		} else {
-			newV = mergeFun(e.Key, nil, &e.Value)
-		}
-		if newV != nil {
-			res = res.Set(e.Key, *newV)
-		}
-		keys = keys.Set(e.Key, struct{}{})
+type MergeOpts[K, A, B, C any] struct {
+	Left  func(K, A) (C, bool)
+	Right func(K, B) (C, bool)
+	Both  func(K, A, B) (C, bool)
+}
+
+func (o MergeOpts[K, A, B, C]) intern(eq hash.EqHash[K]) mergeOpts[K, A, B, C] {
+	return mergeOpts[K, A, B, C]{
+		eq:       eq,
+		mergeFun: o.Both,
+		mergeFun2: func(k K, b B, a A) (C, bool) {
+			return o.Both(k, a, b)
+		},
+		transformA: o.Left,
+		transformB: o.Right,
 	}
-	// add keys that appear in d but not in other
-	for it := d.Iterator(); ; {
+}
+
+func Merge[K, A, B, C any](left Dict[K, A], right Dict[K, B], opts MergeOpts[K, A, B, C]) Dict[K, C] {
+	newRoot := merge(left.root, right.root, 0, opts.intern(left.keyEq))
+	return Dict[K, C]{
+		root: newRoot,
+	}
+}
+
+func MergeIterable[K, A, B, C any](left Dict[K, A], right iterable.Iterable[dict.Entry[K, B]], opts MergeOpts[K, A, B, C]) Dict[K, C] {
+	switch rightD := right.(type) {
+	case Dict[K, B]:
+		if rightD.keyEq == left.keyEq {
+			// special merge with other hash dictionaries using the same key:
+			return Merge(left, rightD, opts)
+		}
+	}
+	res := New[K, C](left.keyEq)
+	keys := New[K, struct{}](left.keyEq)
+	// handle entries in right
+	for it := right.Iterator(); ; {
 		e, ok := it.Next()
 		if !ok {
 			break
 		}
-		if !keys.ContainsKey(e.Key) {
-			newV := mergeFun(e.Key, &e.Value, nil)
-			if newV != nil {
-				res = res.Set(e.Key, *newV)
+		dv, ok := left.Get(e.Key)
+		var newV C
+		keep := false
+		if ok {
+			newV, keep = opts.Both(e.Key, dv, e.Value)
+		} else if opts.Right != nil {
+			newV, keep = opts.Right(e.Key, e.Value)
+		}
+		if keep {
+			res = res.Set(e.Key, newV)
+		}
+		if opts.Left != nil {
+			keys = keys.Set(e.Key, struct{}{})
+		}
+	}
+	if opts.Left != nil {
+		// add keys that appear in left but not in right
+		for it := iterable.Start[dict.Entry[K, A]](left); it.HasNext(); it.Next() {
+			e := it.Current()
+			if !keys.ContainsKey(e.Key) {
+				newV, keep := opts.Left(e.Key, e.Value)
+				if keep {
+					res = res.Set(e.Key, newV)
+				}
 			}
 		}
 	}
 	return res
 }
 
+// MergeAll merges the given collection of entries into this dictionary.
+func (d Dict[K, V]) MergeAll(other iterable.Iterable[dict.Entry[K, V]], opts MergeOpts[K, V, V, V]) Dict[K, V] {
+	return MergeIterable(d, other, opts)
+}
+
 // Merge the given values into the dictionary.
 // If an entry appears on both sides, the merge function is called to determine the new value
 func (d Dict[K, V]) Merge(other iterable.Iterable[dict.Entry[K, V]], mergeFun func(K, V, V) V) Dict[K, V] {
-	// TODO specialize merge with dict
-	// switch otherD := other.(type) {
-	// case Dict[K, V]:
-	// 	if otherD.keyEq == d.keyEq {
-	// 		// special merge with other hash dictionaries using the same key:
-	// 		mergeFun2 := func(key K, a *V, b *V) *V {
-	// 			if a == nil {
-	// 				return b
-	// 			}
-	// 			if b == nil {
-	// 				return a
-	// 			}
-	// 			r := mergeFun(key, *a, *b)
-	// 			return &r
-	// 		}
-	// 		newRoot := d.root.merge(otherD.root, mergeFun2, d.keyEq)
-	// 		return Dict[K, V]{newRoot, d.keyEq}
-	// 	}
-	// }
-	res := d
-	// add entries from other
-	for it := other.Iterator(); ; {
-		e, ok := it.Next()
-		if !ok {
-			break
-		}
-		if dv, ok := d.Get(e.Key); ok {
-			newV := mergeFun(e.Key, dv, e.Value)
-			d = d.Set(e.Key, newV)
-		} else {
-			d = d.Set(e.Key, e.Value)
-		}
-	}
-	return res
+	return MergeIterable(d, other, MergeOpts[K, V, V, V]{
+		Left:  func(k K, a V) (V, bool) { return a, true },
+		Right: func(k K, b V) (V, bool) { return b, true },
+		Both:  func(k K, a V, b V) (V, bool) { return mergeFun(k, a, b), true },
+	})
 }
 
 // Merge the given values into the dictionary.
@@ -194,4 +190,8 @@ func (d Dict[K, V]) MergeRight(other iterable.Iterable[dict.Entry[K, V]]) Dict[K
 	return d.Merge(other, func(k K, v1, v2 V) V {
 		return v2
 	})
+}
+
+func (d Dict[K, V]) checkInvariant() error {
+	return d.root.checkInvariant(0, 0, d.keyEq)
 }

@@ -67,11 +67,12 @@ func (s Set[T]) Union(other iterable.Iterable[T]) Set[T] {
 
 func (s Set[T]) Intersect(other iterable.Iterable[T]) Set[T] {
 	if otherS, ok := other.(Set[T]); ok {
-		d := s.dict.MergeAll(otherS.dict, func(_ T, v1, v2 *struct{}) *struct{} {
-			if v1 != nil && v2 != nil {
-				return &struct{}{}
-			}
-			return nil
+		d := s.dict.MergeAll(otherS.dict, hashdict.MergeOpts[T, struct{}, struct{}, struct{}]{
+			Left:  nil,
+			Right: nil,
+			Both: func(k T, a, b struct{}) (struct{}, bool) {
+				return struct{}{}, true
+			},
 		})
 		return Set[T]{dict: d}
 	}
@@ -90,11 +91,12 @@ func (s Set[T]) Intersect(other iterable.Iterable[T]) Set[T] {
 
 func (s Set[T]) Minus(other iterable.Iterable[T]) Set[T] {
 	if otherS, ok := other.(Set[T]); ok {
-		d := s.dict.MergeAll(otherS.dict, func(_ T, v1, v2 *struct{}) *struct{} {
-			if v1 != nil && v2 == nil {
-				return &struct{}{}
-			}
-			return nil
+		d := s.dict.MergeAll(otherS.dict, hashdict.MergeOpts[T, struct{}, struct{}, struct{}]{
+			Left:  func(k T, a struct{}) (struct{}, bool) { return struct{}{}, true },
+			Right: nil,
+			Both: func(k T, a, b struct{}) (struct{}, bool) {
+				return struct{}{}, false
+			},
 		})
 		return Set[T]{dict: d}
 	}
