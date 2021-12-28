@@ -19,6 +19,7 @@ type node[K, V any] interface {
 	first() (*dict.Entry[K, V], int64)
 	iterator() iterable.Iterator[dict.Entry[K, V]]
 	checkInvariant(level int, prefix int64, eq hash.EqHash[K]) error
+	fmt.Stringer
 }
 
 // empty node
@@ -119,7 +120,7 @@ func (e singleton[K, V]) updated0(key K, hash int64, level int, value V, eq equa
 			hash:  hash,
 			entry: dict.Entry[K, V]{Key: key, Value: value},
 		}
-		return makeTrie[K, V](e.hash, e, e2.hash, e2, level, 2, eq)
+		return makeTrie[K, V](e.hash, e, e2.hash, e2, level, eq)
 	}
 }
 
@@ -139,7 +140,7 @@ func (e bucket[K, V]) updated0(key K, hash int64, level int, value V, eq equalit
 		}
 	}
 	// if hashes are different, make a new try
-	return makeTrie[K, V](e.hash, e, hash, singleton[K, V]{hash, dict.Entry[K, V]{Key: key, Value: value}}, level, e.size()+1, eq)
+	return makeTrie[K, V](e.hash, e, hash, singleton[K, V]{hash, dict.Entry[K, V]{Key: key, Value: value}}, level, eq)
 }
 
 func (e trie[K, V]) updated0(key K, hash int64, level int, value V, eq equality.Equality[K]) node[K, V] {
@@ -160,7 +161,11 @@ func (e trie[K, V]) updated0(key K, hash int64, level int, value V, eq equality.
 }
 
 // makeTrie creates a trie from two buckets/singletons
-func makeTrie[K, V any](aHash int64, a node[K, V], bHash int64, b node[K, V], level int, size int, eq equality.Equality[K]) node[K, V] {
+func makeTrie[K, V any](aHash int64, a node[K, V], bHash int64, b node[K, V], level int, eq equality.Equality[K]) node[K, V] {
+	if aHash == bHash {
+		panic(fmt.Errorf("makeTrie called with same hash"))
+	}
+	size := a.size() + b.size()
 	indexA := index(aHash, level)
 	indexB := index(bHash, level)
 	if indexA != indexB {
@@ -173,7 +178,7 @@ func makeTrie[K, V any](aHash int64, a node[K, V], bHash int64, b node[K, V], le
 	} else {
 		return trie[K, V]{
 			children: newSparseArray(
-				dict.Entry[int, node[K, V]]{Key: indexA, Value: makeTrie(aHash, a, bHash, b, level+5, size, eq)}),
+				dict.Entry[int, node[K, V]]{Key: indexA, Value: makeTrie(aHash, a, bHash, b, level+5, eq)}),
 			count: size,
 		}
 	}
@@ -349,7 +354,7 @@ func filterMap[K, A, B any](dictNode node[K, A], level int, eq hash.EqHash[K], f
 			}
 		}
 	case trie[K, A]:
-		newChildren := sparseArrayFilterMap(e.children, func(i int, n node[K, A]) (node[K, B], bool) {
+		newChildren := sparseArrayFilterMap(e.children, func(_ int, n node[K, A]) (node[K, B], bool) {
 			// recursive call
 			newN := filterMap(n, level+5, eq, f)
 			return newN, newN.size() > 0
@@ -360,8 +365,13 @@ func filterMap[K, A, B any](dictNode node[K, A], level int, eq hash.EqHash[K], f
 		case 1:
 			return newChildren.values[0]
 		default:
+			count := 0
+			for _, c := range newChildren.values {
+				count += c.size()
+			}
 			return trie[K, B]{
 				children: newChildren,
+				count:    count,
 			}
 		}
 	}
@@ -456,7 +466,7 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 					// same key -> merge
 					merged, keep := opt.mergeFun(a.entry.Key, a.entry.Value, b.entry.Value)
 					if keep {
-						return singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{a.entry.Key, merged}}
+						return singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{Key: a.entry.Key, Value: merged}}
 					}
 					return empty[K, C]{}
 				}
@@ -466,33 +476,44 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 			if keepA && keepB {
 				if a.hash != b.hash {
 					// different hashes -> create trie
-					return makeTrie[K, C](a.hash, singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{a.entry.Key, aNew}},
-						b.hash, singleton[K, C]{hash: b.hash, entry: dict.Entry[K, C]{b.entry.Key, bNew}}, level, 2, opt.eq)
+					return makeTrie[K, C](a.hash, singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{Key: a.entry.Key, Value: aNew}},
+						b.hash, singleton[K, C]{hash: b.hash, entry: dict.Entry[K, C]{Key: b.entry.Key, Value: bNew}}, level, opt.eq)
 				}
 				// same hashes -> create bucket
 				return bucket[K, C]{
 					hash: a.hash,
 					entries: arraydict.New(
-						dict.Entry[K, C]{a.entry.Key, aNew},
-						dict.Entry[K, C]{b.entry.Key, bNew}),
+						dict.Entry[K, C]{Key: a.entry.Key, Value: aNew},
+						dict.Entry[K, C]{Key: b.entry.Key, Value: bNew}),
 				}
 			}
 			if keepA {
-				return singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{a.entry.Key, aNew}}
+				return singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{Key: a.entry.Key, Value: aNew}}
 			}
 			if keepB {
-				return singleton[K, C]{hash: b.hash, entry: dict.Entry[K, C]{b.entry.Key, bNew}}
+				return singleton[K, C]{hash: b.hash, entry: dict.Entry[K, C]{Key: b.entry.Key, Value: bNew}}
 			}
 			return empty[K, C]{}
 		case bucket[K, B]:
 			if a.hash == b.hash {
 				// hash-collision -> update bucket
-				arraydict.FilterMap(b.entries, func(key K, bv B) (C, bool) {
+				newEntries := arraydict.FilterMap(b.entries, func(key K, bv B) (C, bool) {
 					if opt.eq.Equal(key, a.entry.Key) {
 						return opt.mergeFun(key, a.entry.Value, bv)
 					}
 					return opt.applyB(key, bv)
 				})
+				if opt.transformA != nil {
+					if !newEntries.ContainsKey(a.entry.Key, opt.eq) {
+						if newVal, keep := opt.applyA(a.entry.Key, a.entry.Value); keep {
+							newEntries = newEntries.Set(a.entry.Key, newVal, opt.eq)
+						}
+					}
+				}
+				return bucket[K, C]{
+					hash:    a.hash,
+					entries: newEntries,
+				}
 			}
 			// different hashes -> create trie
 			aNew, keepA := opt.applyA(a.entry.Key, a.entry.Value)
@@ -500,8 +521,8 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 			if !keepA {
 				return bNew
 			}
-			return makeTrie[K, C](a.hash, singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{a.entry.Key, aNew}},
-				b.hash, bNew, level, 2, opt.eq)
+			return makeTrie[K, C](a.hash, singleton[K, C]{hash: a.hash, entry: dict.Entry[K, C]{Key: a.entry.Key, Value: aNew}},
+				b.hash, bNew, level, opt.eq)
 		case trie[K, B]:
 			aIndex := index(a.hash, level)
 			bNew := sparseArrayFilterMap(b.children, func(i int, n node[K, B]) (node[K, C], bool) {
@@ -551,7 +572,7 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 			// different hashes -> create trie
 			aNew := filterMap[K, A](a, level, opt.eq, opt.transformA)
 			bNew := filterMap[K, B](b, level, opt.eq, opt.transformB)
-			return makeTrie[K, C](a.hash, aNew, b.hash, bNew, level, 2, opt.eq)
+			return makeTrie[K](a.hash, aNew, b.hash, bNew, level, opt.eq)
 		case trie[K, B]:
 			aIndex := index(a.hash, level)
 			bNew := sparseArrayFilterMap(b.children, func(i int, n node[K, B]) (node[K, C], bool) {
@@ -598,7 +619,7 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 					}
 				}
 				if merged != nil && merged.size() > 0 {
-					newEntries = append(newEntries, dict.Entry[int, node[K, C]]{i, merged})
+					newEntries = append(newEntries, dict.Entry[int, node[K, C]]{Key: i, Value: merged})
 				}
 			}
 			if len(newEntries) == 0 {
@@ -609,7 +630,7 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 				count += e.Value.size()
 			}
 			return trie[K, C]{
-				children: newSparseArraySorted[node[K, C]](newEntries...),
+				children: newSparseArraySorted(newEntries...),
 				count:    count,
 			}
 		}
@@ -664,4 +685,20 @@ func (e trie[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) e
 		return fmt.Errorf("empty trie")
 	}
 	return nil
+}
+
+func (e empty[K, V]) String() string {
+	return "-"
+}
+
+func (e singleton[K, V]) String() string {
+	return fmt.Sprintf("singleton(%x)[%+v]", e.hash, e.entry)
+}
+
+func (e bucket[K, V]) String() string {
+	return fmt.Sprintf("bucket(%x)%+v", e.hash, iterable.String[dict.Entry[K, V]](e.entries))
+}
+
+func (e trie[K, V]) String() string {
+	return fmt.Sprintf("trie[%+v]", iterable.String[dict.Entry[int, node[K, V]]](e.children))
 }

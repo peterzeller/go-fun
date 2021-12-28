@@ -101,3 +101,25 @@ func FilterMap[K, A, B any](d ArrayDict[K, A], f func(K, A) (B, bool)) ArrayDict
 	}
 	return ArrayDict[K, B]{res}
 }
+
+func (d ArrayDict[K, V]) MergeLeft(right iterable.Iterable[dict.Entry[K, V]], keyEq equality.Equality[K]) ArrayDict[K, V] {
+	res := d
+	for it := iterable.Start(right); it.HasNext(); it.Next() {
+		if !res.ContainsKey(it.Current().Key, keyEq) {
+			res = res.Set(it.Current().Key, it.Current().Value, keyEq)
+		}
+	}
+	return res
+}
+
+func (d ArrayDict[K, V]) MergeRight(right iterable.Iterable[dict.Entry[K, V]], keyEq equality.Equality[K]) ArrayDict[K, V] {
+	res := d
+	for it := iterable.Start(right); it.HasNext(); it.Next() {
+		res = res.Set(it.Current().Key, it.Current().Value, keyEq)
+	}
+	return res
+}
+
+func (d ArrayDict[K, V]) String() string {
+	return iterable.String[dict.Entry[K, V]](d)
+}

@@ -90,6 +90,10 @@ func (d Dict[K, V]) Size() int {
 	return d.root.size()
 }
 
+func (d Dict[K, V]) String() string {
+	return iterable.String[dict.Entry[K, V]](d)
+}
+
 type MergeOpts[K, A, B, C any] struct {
 	Left  func(K, A) (C, bool)
 	Right func(K, B) (C, bool)
@@ -111,17 +115,17 @@ func (o MergeOpts[K, A, B, C]) intern(eq hash.EqHash[K]) mergeOpts[K, A, B, C] {
 func Merge[K, A, B, C any](left Dict[K, A], right Dict[K, B], opts MergeOpts[K, A, B, C]) Dict[K, C] {
 	newRoot := merge(left.root, right.root, 0, opts.intern(left.keyEq))
 	return Dict[K, C]{
-		root: newRoot,
+		root:  newRoot,
+		keyEq: left.keyEq,
 	}
 }
 
 func MergeIterable[K, A, B, C any](left Dict[K, A], right iterable.Iterable[dict.Entry[K, B]], opts MergeOpts[K, A, B, C]) Dict[K, C] {
 	switch rightD := right.(type) {
 	case Dict[K, B]:
-		if rightD.keyEq == left.keyEq {
-			// special merge with other hash dictionaries using the same key:
-			return Merge(left, rightD, opts)
-		}
+		// special merge with other hash dictionaries using the same key:
+		// we assume here that the same equality and hash code are used
+		return Merge(left, rightD, opts)
 	}
 	res := New[K, C](left.keyEq)
 	keys := New[K, struct{}](left.keyEq)
@@ -193,5 +197,11 @@ func (d Dict[K, V]) MergeRight(other iterable.Iterable[dict.Entry[K, V]]) Dict[K
 }
 
 func (d Dict[K, V]) checkInvariant() error {
+	if d.root == nil {
+		return fmt.Errorf("root is nil")
+	}
+	if d.keyEq == nil {
+		return fmt.Errorf("keyEq is nil")
+	}
 	return d.root.checkInvariant(0, 0, d.keyEq)
 }
