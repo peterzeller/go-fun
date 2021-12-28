@@ -1,4 +1,4 @@
-package list
+package linkedlist
 
 import (
 	"fmt"
@@ -9,15 +9,15 @@ import (
 	"github.com/peterzeller/go-fun/v2/zero"
 )
 
-// List represents an immutable list.
+// LinkedList represents an immutable list.
 // The empty list is represented by the nil value.
-type List[T any] struct {
+type LinkedList[T any] struct {
 	head T
-	tail *List[T]
+	tail *LinkedList[T]
 }
 
 // Iterator for the list.
-func (l *List[T]) Iterator() iterable.Iterator[T] {
+func (l *LinkedList[T]) Iterator() iterable.Iterator[T] {
 	state := l
 	return iterable.Fun[T](func() (T, bool) {
 		if state == nil {
@@ -30,7 +30,7 @@ func (l *List[T]) Iterator() iterable.Iterator[T] {
 }
 
 // Length of the list.
-func (l *List[T]) Length() int {
+func (l *LinkedList[T]) Length() int {
 	state := l
 	count := 0
 	for state != nil {
@@ -40,10 +40,10 @@ func (l *List[T]) Length() int {
 }
 
 // Create a new list
-func New[T any](elems ...T) *List[T] {
-	var res *List[T]
+func New[T any](elems ...T) *LinkedList[T] {
+	var res *LinkedList[T]
 	for i := len(elems) - 1; i >= 0; i-- {
-		res = &List[T]{
+		res = &LinkedList[T]{
 			head: elems[i],
 			tail: res,
 		}
@@ -53,7 +53,7 @@ func New[T any](elems ...T) *List[T] {
 
 // Head is the first element in the list.
 // Panics when called on the empty list.
-func (l *List[T]) Head() T {
+func (l *LinkedList[T]) Head() T {
 	if l == nil {
 		panic(fmt.Errorf("trying to get head of empty list"))
 	}
@@ -61,7 +61,7 @@ func (l *List[T]) Head() T {
 }
 
 // Tail returns all but the first element of the list.
-func (l *List[T]) Tail() *List[T] {
+func (l *LinkedList[T]) Tail() *LinkedList[T] {
 	if l == nil {
 		panic(fmt.Errorf("trying to get tail of empty list"))
 	}
@@ -69,12 +69,12 @@ func (l *List[T]) Tail() *List[T] {
 }
 
 // Append another list to this list.
-func (l *List[T]) Append(r *List[T]) *List[T] {
-	var prev *List[T]
+func (l *LinkedList[T]) Append(r *LinkedList[T]) *LinkedList[T] {
+	var prev *LinkedList[T]
 	s := l
 	res := r
 	for s != nil {
-		res = &List[T]{
+		res = &LinkedList[T]{
 			head: s.head,
 			tail: r,
 		}
@@ -87,7 +87,7 @@ func (l *List[T]) Append(r *List[T]) *List[T] {
 }
 
 // Contains checks whether the list contains the given element.
-func (l *List[T]) Contains(elem T, eq equality.Equality[T]) bool {
+func (l *LinkedList[T]) Contains(elem T, eq equality.Equality[T]) bool {
 	it := l.Iterator()
 	for {
 		a, ok := it.Next()
@@ -101,7 +101,7 @@ func (l *List[T]) Contains(elem T, eq equality.Equality[T]) bool {
 }
 
 // Equal checks whether this list is equal to another list
-func (l *List[T]) Equal(other *List[T], eq equality.Equality[T]) bool {
+func (l *LinkedList[T]) Equal(other *LinkedList[T], eq equality.Equality[T]) bool {
 	a := l
 	b := other
 	for {
@@ -120,7 +120,7 @@ func (l *List[T]) Equal(other *List[T], eq equality.Equality[T]) bool {
 }
 
 // PrefixOf checks whether this list is a prefix of another list
-func (l *List[T]) PrefixOf(other *List[T], eq equality.Equality[T]) bool {
+func (l *LinkedList[T]) PrefixOf(other *LinkedList[T], eq equality.Equality[T]) bool {
 	a := l
 	b := other
 	for {
@@ -139,17 +139,17 @@ func (l *List[T]) PrefixOf(other *List[T], eq equality.Equality[T]) bool {
 }
 
 // Forall checks whether all elements in the lists satisfy the given condition.
-func (l *List[T]) Forall(cond func(T) bool) bool {
+func (l *LinkedList[T]) Forall(cond func(T) bool) bool {
 	return reducer.Apply[T](l, reducer.Forall(cond))
 }
 
 // Exists checks whether some element in the list satisfies the given condition.
-func (l *List[T]) Exists(cond func(T) bool) bool {
+func (l *LinkedList[T]) Exists(cond func(T) bool) bool {
 	return reducer.Apply[T](l, reducer.Exists(cond))
 }
 
 // Skip the first n element of the list
-func (l *List[T]) Skip(n int) *List[T] {
+func (l *LinkedList[T]) Skip(n int) *LinkedList[T] {
 	res := l
 	for i := 0; i < n; i++ {
 		if res == nil {
@@ -161,15 +161,15 @@ func (l *List[T]) Skip(n int) *List[T] {
 }
 
 // Limit the length of the list and take only the first n elements.
-func (l *List[T]) Limit(n int) *List[T] {
+func (l *LinkedList[T]) Limit(n int) *LinkedList[T] {
 	current := l
-	var res *List[T]
-	var prev *List[T]
+	var res *LinkedList[T]
+	var prev *LinkedList[T]
 	for i := 0; i < n; i++ {
 		if current == nil {
 			return res
 		}
-		res = &List[T]{
+		res = &LinkedList[T]{
 			head: current.head,
 		}
 		if prev != nil {
