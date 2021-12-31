@@ -362,8 +362,8 @@ func filterMap[K, A, B any](dictNode node[K, A], level int, eq hash.EqHash[K], f
 		switch newChildren.size() {
 		case 0:
 			return empty[K, B]{}
-		case 1:
-			return newChildren.values[0]
+		//case 1:
+		// TODO if the count is also 1, we can collapse this
 		default:
 			count := 0
 			for _, c := range newChildren.values {
@@ -440,6 +440,7 @@ func hashAndDictToNode[K, V any](hash int64, d arraydict.ArrayDict[K, V]) node[K
 }
 
 func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt mergeOpts[K, A, B, C]) node[K, C] {
+	//log.Printf("merge level %d: %+v and %+v", level, nodeA, nodeB)
 	// switch handles the following cases:
 	//           | empty | singleton | bucket | trie
 	// empty     | x     | x         | x      | x
@@ -525,10 +526,12 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 				b.hash, bNew, level, opt.eq)
 		case trie[K, B]:
 			aIndex := index(a.hash, level)
+			updated := false
 			bNew := sparseArrayFilterMap(b.children, func(i int, n node[K, B]) (node[K, C], bool) {
 				var newNode node[K, C]
 				if i == aIndex {
 					newNode = merge(nodeA, n, level+5, opt)
+					updated = true
 				} else {
 					if opt.transformB == nil {
 						newNode = empty[K, C]{}
@@ -538,6 +541,17 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 				}
 				return newNode, newNode.size() > 0
 			})
+			if !updated {
+				if newV, ok := opt.applyA(a.entry.Key, a.entry.Value); ok {
+					bNew = bNew.set(aIndex, singleton[K, C]{
+						hash: a.hash,
+						entry: dict.Entry[K, C]{
+							Key:   a.entry.Key,
+							Value: newV,
+						},
+					})
+				}
+			}
 			return trieArrayToNode(bNew)
 		}
 	case bucket[K, A]:
@@ -688,17 +702,17 @@ func (e trie[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) e
 }
 
 func (e empty[K, V]) String() string {
-	return "-"
+	return "empty"
 }
 
 func (e singleton[K, V]) String() string {
-	return fmt.Sprintf("singleton(%x)[%+v]", e.hash, e.entry)
+	return fmt.Sprintf("singleton(%b)[%+v]", e.hash, e.entry)
 }
 
 func (e bucket[K, V]) String() string {
-	return fmt.Sprintf("bucket(%x)%+v", e.hash, iterable.String[dict.Entry[K, V]](e.entries))
+	return fmt.Sprintf("bucket(%b)%+v", e.hash, iterable.String[dict.Entry[K, V]](e.entries))
 }
 
 func (e trie[K, V]) String() string {
-	return fmt.Sprintf("trie[%+v]", iterable.String[dict.Entry[int, node[K, V]]](e.children))
+	return fmt.Sprintf("trie%+v", iterable.String[dict.Entry[int, node[K, V]]](e.children))
 }

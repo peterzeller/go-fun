@@ -6,8 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/dict/arraydict"
 	"github.com/peterzeller/go-fun/v2/hash"
+	"github.com/peterzeller/go-fun/v2/iterable"
 	"github.com/stretchr/testify/require"
 	"pgregory.net/rapid"
 )
@@ -132,55 +134,119 @@ func TestDictGetSetRemove(t *testing.T) {
 	})
 }
 
-func TestDicSetMerge(t *testing.T) {
+func genEntry() *rapid.Generator { // dict.Entry[key, int]
+	return rapid.Custom(func(t *rapid.T) dict.Entry[key, int] {
+		return dict.Entry[key, int]{
+			Key:   genKey(t),
+			Value: rapid.IntRange(0, 10).Draw(t, "value").(int),
+		}
+	})
+}
+
+func genDict() *rapid.Generator { // Dict[key, int]
+	return rapid.SliceOf(genEntry()).Map(func(ar []dict.Entry[key, int]) Dict[key, int] {
+		return New(keyHash, ar...)
+	})
+}
+
+func TestMergeLeft(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
+		a := genDict().Draw(t, "").(Dict[key, int])
+		b := genDict().Draw(t, "").(Dict[key, int])
+		t.Logf("a = %+v", a)
+		require.NoError(t, a.checkInvariant())
+		t.Logf("b = %+v", b)
+		require.NoError(t, b.checkInvariant())
+		c := a.MergeLeft(b)
+		t.Logf("c = %+v", c)
+		require.NoError(t, c.checkInvariant())
 
-		dicts := []Dict[key, int]{
-			New[key, int](keyHash),
-		}
-		arrayDicts := []arraydict.ArrayDict[key, int]{
-			arraydict.New[key, int](),
+		for it := iterable.Start[dict.Entry[key, int]](a); it.HasNext(); it.Next() {
+			require.Equal(t, it.Current().Value, c.GetOrZero(it.Current().Key), "left value for key %+v", it.Current().Key)
 		}
 
-		n := rapid.IntRange(1, 100).Draw(t, "n").(int)
-		for i := 0; i < n; i++ {
-			d := rapid.IntRange(0, len(dicts)-1).Draw(t, "d").(int)
-			dict := dicts[d]
-			arrayDict := arrayDicts[d]
-			cmd := rapid.IntRange(0, 2).Draw(t, "cmd").(int)
-			switch cmd {
-			case 0: // set
-				key := genKey(t)
-				v := rapid.IntRange(0, 10).Draw(t, "value").(int)
-				t.Logf("dict[%d] = dict[%d].Set('%s', %d)", len(dicts), d, key, v)
-				d1 := dict.Set(key, v)
-				d2 := arrayDict.Set(key, v, keyHash)
-				dicts = append(dicts, d1)
-				arrayDicts = append(arrayDicts, d2)
-			case 1: // merge left
-				left := rapid.IntRange(0, len(dicts)-1).Draw(t, "left").(int)
-				right := rapid.IntRange(0, len(dicts)-1).Draw(t, "right").(int)
-				t.Logf("dict[%d] = dict[%d].MergeLeft(dict[%d])", len(dicts), left, right)
-				d1 := dicts[left].MergeLeft(dicts[right])
-				d2 := arrayDicts[left].MergeLeft(arrayDicts[right], keyHash)
-				dicts = append(dicts, d1)
-				arrayDicts = append(arrayDicts, d2)
-			case 2: // merge right
-				left := rapid.IntRange(0, len(dicts)-1).Draw(t, "left").(int)
-				right := rapid.IntRange(0, len(dicts)-1).Draw(t, "right").(int)
-				t.Logf("dict[%d] = dict[%d].MergeRight(dict[%d])", len(dicts), left, right)
-				d1 := dicts[left].MergeLeft(dicts[right])
-				d2 := arrayDicts[left].MergeLeft(arrayDicts[right], keyHash)
-				dicts = append(dicts, d1)
-				arrayDicts = append(arrayDicts, d2)
-			}
-			require.NoError(t, dicts[len(dicts)-1].checkInvariant())
-			for i := range dicts {
-				assertDictsEqual(t, arrayDicts[i], dicts[i])
+		for it := iterable.Start[dict.Entry[key, int]](b); it.HasNext(); it.Next() {
+			if !a.ContainsKey(it.Current().Key) {
+				require.Equal(t, it.Current().Value, c.GetOrZero(it.Current().Key), "right value for key %+v", it.Current().Key)
 			}
 		}
 	})
 }
+
+func TestFilterMap(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		a := genDict().Draw(t, "").(Dict[key, int])
+		b := a.FilterMap(func(_ key, v int) (int, bool) {
+			if v%2 == 0 {
+				return 10 + v, true
+			}
+			return 0, false
+		})
+		t.Logf("a = %+v", a)
+		t.Logf("b = %+v", b)
+		t.Logf("a.root = %+v", a.root)
+		t.Logf("b.root = %+v", b.root)
+		require.NoError(t, a.checkInvariant())
+		require.NoError(t, b.checkInvariant())
+
+		for it := iterable.Start[dict.Entry[key, int]](a); it.HasNext(); it.Next() {
+			if it.Current().Value%2 == 0 {
+				require.True(t, b.ContainsKey(it.Current().Key), "key %+v does not exist in result", it.Current().Key)
+				require.Equal(t, it.Current().Value+10, b.GetOrZero(it.Current().Key))
+			}
+		}
+	})
+}
+
+// func TestDicSetMerge(t *testing.T) {
+// 	rapid.Check(t, func(t *rapid.T) {
+
+// 		dicts := []Dict[key, int]{
+// 			New[key, int](keyHash),
+// 		}
+// 		arrayDicts := []arraydict.ArrayDict[key, int]{
+// 			arraydict.New[key, int](),
+// 		}
+
+// 		n := rapid.IntRange(1, 100).Draw(t, "n").(int)
+// 		for i := 0; i < n; i++ {
+// 			d := rapid.IntRange(0, len(dicts)-1).Draw(t, "d").(int)
+// 			dict := dicts[d]
+// 			arrayDict := arrayDicts[d]
+// 			cmd := rapid.IntRange(0, 2).Draw(t, "cmd").(int)
+// 			switch cmd {
+// 			case 0: // set
+// 				key := genKey(t)
+// 				v := rapid.IntRange(0, 10).Draw(t, "value").(int)
+// 				t.Logf("dict[%d] = dict[%d].Set('%s', %d)", len(dicts), d, key, v)
+// 				d1 := dict.Set(key, v)
+// 				d2 := arrayDict.Set(key, v, keyHash)
+// 				dicts = append(dicts, d1)
+// 				arrayDicts = append(arrayDicts, d2)
+// 			case 1: // merge left
+// 				left := rapid.IntRange(0, len(dicts)-1).Draw(t, "left").(int)
+// 				right := rapid.IntRange(0, len(dicts)-1).Draw(t, "right").(int)
+// 				t.Logf("dict[%d] = dict[%d].MergeLeft(dict[%d])", len(dicts), left, right)
+// 				d1 := dicts[left].MergeLeft(dicts[right])
+// 				d2 := arrayDicts[left].MergeLeft(arrayDicts[right], keyHash)
+// 				dicts = append(dicts, d1)
+// 				arrayDicts = append(arrayDicts, d2)
+// 			case 2: // merge right
+// 				left := rapid.IntRange(0, len(dicts)-1).Draw(t, "left").(int)
+// 				right := rapid.IntRange(0, len(dicts)-1).Draw(t, "right").(int)
+// 				t.Logf("dict[%d] = dict[%d].MergeRight(dict[%d])", len(dicts), left, right)
+// 				d1 := dicts[left].MergeLeft(dicts[right])
+// 				d2 := arrayDicts[left].MergeLeft(arrayDicts[right], keyHash)
+// 				dicts = append(dicts, d1)
+// 				arrayDicts = append(arrayDicts, d2)
+// 			}
+// 			require.NoError(t, dicts[len(dicts)-1].checkInvariant())
+// 			for i := range dicts {
+// 				assertDictsEqual(t, arrayDicts[i], dicts[i])
+// 			}
+// 		}
+// 	})
+// }
 
 func assertDictsEqual(t require.TestingT, a arraydict.ArrayDict[key, int], b Dict[key, int]) {
 	var err error
@@ -233,4 +299,29 @@ func TestMerge(t *testing.T) {
 	bv, ok := d4.Get("b")
 	require.True(t, ok)
 	require.Equal(t, 0, bv)
+}
+
+func TestMerge2(t *testing.T) {
+	dict0 := New[key, int](keyHash)
+	dict1 := dict0.Set("", 0)
+	dict2 := dict0.Set("a", 0)
+	dict3 := dict1.Set("aa", 0)
+	dict4 := dict2.MergeLeft(dict3)
+	log.Printf("dict4 = %+v", dict4)
+	require.True(t, dict4.ContainsKey("a"))
+}
+
+func TestMerge3(t *testing.T) {
+	a := New[key, int](keyHash)
+	b := New[key, int](keyHash, dict.Entry[key, int]{"abbb", 1}, dict.Entry[key, int]{"ababbb", 2})
+	c := a.MergeLeft(b)
+	log.Printf("a = %+v", a)
+	log.Printf("b = %+v", b)
+	log.Printf("c = %+v", c)
+	log.Printf("a = %+v", a.root)
+	log.Printf("b = %+v", b.root)
+	log.Printf("c = %+v", c.root)
+	require.NoError(t, a.checkInvariant(), "a invariant")
+	require.NoError(t, b.checkInvariant(), "b invariant")
+	require.NoError(t, c.checkInvariant(), "c invariant")
 }

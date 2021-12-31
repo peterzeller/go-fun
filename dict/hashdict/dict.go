@@ -205,3 +205,36 @@ func (d Dict[K, V]) checkInvariant() error {
 	}
 	return d.root.checkInvariant(0, 0, d.keyEq)
 }
+
+func FilterMap[K, A, B any](d Dict[K, A], f func(K, A) (B, bool)) Dict[K, B] {
+	return Dict[K, B]{
+		keyEq: d.keyEq,
+		root:  filterMap(d.root, 0, d.keyEq, f),
+	}
+}
+
+func (d Dict[K, V]) FilterMap(f func(K, V) (V, bool)) Dict[K, V] {
+	return FilterMap(d, f)
+}
+
+func Map[K, A, B any](d Dict[K, A], f func(K, A) B) Dict[K, B] {
+	return Dict[K, B]{
+		keyEq: d.keyEq,
+		root: filterMap(d.root, 0, d.keyEq, func(key K, value A) (B, bool) {
+			return f(key, value), true
+		}),
+	}
+}
+
+func (d Dict[K, V]) Map(f func(K, V) V) Dict[K, V] {
+	return Map(d, f)
+}
+
+func (d Dict[K, V]) Filter(cond func(K, V) bool) Dict[K, V] {
+	return Dict[K, V]{
+		keyEq: d.keyEq,
+		root: filterMap(d.root, 0, d.keyEq, func(key K, value V) (V, bool) {
+			return value, cond(key, value)
+		}),
+	}
+}
