@@ -440,7 +440,7 @@ func hashAndDictToNode[K, V any](hash int64, d arraydict.ArrayDict[K, V]) node[K
 }
 
 func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt mergeOpts[K, A, B, C]) node[K, C] {
-	//log.Printf("merge level %d: %+v and %+v", level, nodeA, nodeB)
+	// log.Printf("merge level %d: %+v and %+v", level, nodeA, nodeB)
 	// switch handles the following cases:
 	//           | empty | singleton | bucket | trie
 	// empty     | x     | x         | x      | x
@@ -589,10 +589,12 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 			return makeTrie[K](a.hash, aNew, b.hash, bNew, level, opt.eq)
 		case trie[K, B]:
 			aIndex := index(a.hash, level)
+			merged := false
 			bNew := sparseArrayFilterMap(b.children, func(i int, n node[K, B]) (node[K, C], bool) {
 				var newNode node[K, C]
 				if i == aIndex {
 					newNode = merge(nodeA, n, level+5, opt)
+					merged = true
 				} else {
 					if opt.transformB == nil {
 						newNode = empty[K, C]{}
@@ -602,6 +604,9 @@ func merge[K, A, B, C any](nodeA node[K, A], nodeB node[K, B], level int, opt me
 				}
 				return newNode, newNode.size() > 0
 			})
+			if !merged && opt.transformA != nil {
+				bNew = bNew.set(aIndex, filterMap(nodeA, level, opt.eq, opt.transformA))
+			}
 			return trieArrayToNode(bNew)
 		}
 

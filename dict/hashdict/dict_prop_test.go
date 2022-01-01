@@ -173,6 +173,22 @@ func TestMergeLeft(t *testing.T) {
 	})
 }
 
+func TestMergeLeft2(t *testing.T) {
+	a := New(keyHash, dict.Entry[key, int]{Key: "", Value: 0}, dict.Entry[key, int]{Key: "b", Value: 0})
+	b := New(keyHash, dict.Entry[key, int]{Key: "a", Value: 0}, dict.Entry[key, int]{Key: "aa", Value: 0})
+	c := a.MergeLeft(b)
+	t.Logf("a = %+v", a)
+	t.Logf("b = %+v", b)
+	t.Logf("c = %+v", c)
+	t.Logf("a.root = %+v", a.root)
+	t.Logf("b.root = %+v", b.root)
+	t.Logf("c.root = %+v", c.root)
+	expected := New(keyHash, dict.Entry[key, int]{Key: "", Value: 0}, dict.Entry[key, int]{Key: "b", Value: 0},
+		dict.Entry[key, int]{Key: "a", Value: 0}, dict.Entry[key, int]{Key: "aa", Value: 0})
+	require.Equal(t, expected.String(), c.String())
+	//require.True(t, expected.Equals(c))
+}
+
 func TestFilterMap(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		a := genDict().Draw(t, "").(Dict[key, int])
