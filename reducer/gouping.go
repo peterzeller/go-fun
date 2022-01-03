@@ -50,3 +50,22 @@ func ToMap[T any, K comparable, V any](key func(T) K, value func(T) V) Reducer[T
 func ToMapId[V any, K comparable](key func(V) K) Reducer[V, map[K]V] {
 	return GroupBy(key, First[V]())
 }
+
+// ToSet turns the input into a set represented as a map[T]bool
+func ToSet[T comparable]() Reducer[T, map[T]bool] {
+	return GroupBy(func(a T) T { return a }, Constant[T](true))
+}
+
+// Constant is a reducer that always returns a constant value
+func Constant[S, T any](value T) Reducer[S, T] {
+	return func() ReducerInstance[S, T] {
+		return ReducerInstance[S, T]{
+			Complete: func() T {
+				return value
+			},
+			Step: func(a S) bool {
+				return false
+			},
+		}
+	}
+}
