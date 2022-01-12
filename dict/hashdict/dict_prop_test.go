@@ -10,6 +10,7 @@ import (
 	"github.com/peterzeller/go-fun/v2/dict/arraydict"
 	"github.com/peterzeller/go-fun/v2/hash"
 	"github.com/peterzeller/go-fun/v2/iterable"
+	"github.com/peterzeller/go-fun/v2/reducer"
 	"github.com/stretchr/testify/require"
 	"pgregory.net/rapid"
 )
@@ -201,6 +202,7 @@ func TestMergeLeftIterable(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		a := genDict().Draw(t, "a").(Dict[key, int])
 		b := rapid.SliceOf(genEntry()).Draw(t, "b").([]dict.Entry[key, int])
+		b = reducer.ApplySlice(b, reducer.DistinctBy(func(d dict.Entry[key, int]) key { return d.Key }, reducer.ToSlice[dict.Entry[key, int]]()))
 		t.Logf("a = %+v", a)
 		require.NoError(t, a.checkInvariant())
 		t.Logf("b = %+v", b)
@@ -224,6 +226,7 @@ func TestMergeRightIterable(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		a := genDict().Draw(t, "a").(Dict[key, int])
 		b := rapid.SliceOf(genEntry()).Draw(t, "b").([]dict.Entry[key, int])
+		b = reducer.ApplySlice(b, reducer.DistinctBy(func(d dict.Entry[key, int]) key { return d.Key }, reducer.ToSlice[dict.Entry[key, int]]()))
 		t.Logf("a = %+v", a)
 		require.NoError(t, a.checkInvariant())
 		t.Logf("b = %+v", b)
