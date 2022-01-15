@@ -415,3 +415,21 @@ func TestMerge3(t *testing.T) {
 	require.NoError(t, b.checkInvariant(), "b invariant")
 	require.NoError(t, c.checkInvariant(), "c invariant")
 }
+
+func TestRemove(t *testing.T) {
+	a := New[key, int](keyHash)
+	b := a.Set("", 0)
+	c := b.Set("a", 0)
+	d := c.Set("ba", 0)
+	e := d.Remove("")
+	t.Logf("d = %+v", d)
+	t.Logf("e = %+v", e)
+	require.NoError(t, a.checkInvariant(), "a invariant")
+	require.NoError(t, b.checkInvariant(), "b invariant")
+	require.NoError(t, c.checkInvariant(), "c invariant")
+	require.NoError(t, d.checkInvariant(), "d invariant")
+	require.NoError(t, e.checkInvariant(), "e invariant")
+	require.False(t, e.ContainsKey(""), "not contains ''")
+	require.True(t, e.ContainsKey("a"), "contains 'a'")
+	require.True(t, e.ContainsKey("ba"), "contains 'ba'")
+}

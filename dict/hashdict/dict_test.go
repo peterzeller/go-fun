@@ -5,8 +5,11 @@ import (
 
 	"github.com/peterzeller/go-fun/v2/dict"
 	"github.com/peterzeller/go-fun/v2/dict/hashdict"
+	"github.com/peterzeller/go-fun/v2/equality"
 	"github.com/peterzeller/go-fun/v2/hash"
+	"github.com/peterzeller/go-fun/v2/list"
 	"github.com/peterzeller/go-fun/v2/reducer"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -81,4 +84,40 @@ func TestFilter(t *testing.T) {
 	require.Equal(t, 1, d.GetOrZero("a"))
 	require.Equal(t, 0, d.GetOrZero("b"))
 	require.Equal(t, 3, d.GetOrZero("c"))
+}
+
+func TestFromMap(t *testing.T) {
+	a := hashdict.New(hash.String(), dict.E("a", 1), dict.E("b", 2), dict.E("c", 3))
+	b := hashdict.FromMap(hash.String(), map[string]int{"a": 1, "b": 2, "c": 3})
+	require.True(t, a.Equal(b, equality.Default[int]()))
+}
+
+func TestMergeAll(t *testing.T) {
+	a := hashdict.New(hash.String(), dict.E("a", 1), dict.E("b", 2), dict.E("c", 3))
+
+	b := a.MergeAll(list.New(dict.E("b", 20), dict.E("d", 40)), hashdict.MergeOpts[string, int, int, int]{
+		Left:  func(k string, a int) (int, bool) { return a, true },
+		Right: func(k string, b int) (int, bool) { return b, true },
+		Both:  func(k string, a int, b int) (int, bool) { return b, true },
+	})
+
+	expected := hashdict.FromMap(hash.String(), map[string]int{"a": 1, "b": 20, "c": 3, "d": 40})
+
+	require.True(t, b.Equal(expected, equality.Default[int]()))
+}
+
+func TestEqual(t *testing.T) {
+	a := hashdict.FromMap(hash.String(), map[string]int{"a": 1, "b": 2, "c": 3})
+	b := hashdict.FromMap(hash.String(), map[string]int{"c": 3})
+	c := hashdict.FromMap(hash.String(), map[string]int{"a": 1, "b": 20, "c": 3})
+
+	assert.True(t, a.Equal(a, equality.Default[int]()))
+	assert.False(t, a.Equal(b, equality.Default[int]()))
+	assert.False(t, a.Equal(c, equality.Default[int]()))
+	assert.False(t, b.Equal(a, equality.Default[int]()))
+	assert.True(t, b.Equal(b, equality.Default[int]()))
+	assert.False(t, b.Equal(c, equality.Default[int]()))
+	assert.False(t, c.Equal(a, equality.Default[int]()))
+	assert.False(t, c.Equal(b, equality.Default[int]()))
+	assert.True(t, c.Equal(c, equality.Default[int]()))
 }

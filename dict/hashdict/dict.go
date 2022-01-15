@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/peterzeller/go-fun/v2/dict"
+	"github.com/peterzeller/go-fun/v2/equality"
 	"github.com/peterzeller/go-fun/v2/hash"
 	"github.com/peterzeller/go-fun/v2/iterable"
 	"github.com/peterzeller/go-fun/v2/zero"
@@ -20,6 +21,14 @@ func New[K, V any](eq hash.EqHash[K], entries ...dict.Entry[K, V]) Dict[K, V] {
 	var root node[K, V] = empty[K, V]{}
 	for _, e := range entries {
 		root = root.updated0(e.Key, eq.Hash(e.Key), 0, e.Value, eq)
+	}
+	return Dict[K, V]{root, eq}
+}
+
+func FromMap[K comparable, V any](eq hash.EqHash[K], m map[K]V) Dict[K, V] {
+	var root node[K, V] = empty[K, V]{}
+	for k, v := range m {
+		root = root.updated0(k, eq.Hash(k), 0, v, eq)
 	}
 	return Dict[K, V]{root, eq}
 }
@@ -230,5 +239,29 @@ func (d Dict[K, V]) Filter(cond func(K, V) bool) Dict[K, V] {
 		root: filterMap(d.root, 0, d.keyEq, func(key K, value V) (V, bool) {
 			return value, cond(key, value)
 		}),
+	}
+}
+
+var notEqual = fmt.Errorf("not equal")
+
+func (d Dict[K, V]) Equal(other Dict[K, V], eq equality.Equality[V]) (res bool) {
+	if d.Size() != other.Size() {
+		return false
+	}
+	// we can use iterators, since the iteration order of a trie is deterministic
+	// there is some optimization potential with a recursive equal function that uses reference equality of subtrees
+	it1 := d.Iterator()
+	it2 := other.Iterator()
+
+	for {
+		e1, ok1 := it1.Next()
+		e2, ok2 := it2.Next()
+		// since sizes are equal, ok1 == ok2
+		if !ok1 && !ok2 {
+			return true
+		}
+		if !d.keyEq.Equal(e1.Key, e2.Key) || !eq.Equal(e1.Value, e2.Value) {
+			return false
+		}
 	}
 }

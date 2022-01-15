@@ -232,9 +232,12 @@ func (e trie[K, V]) removed0(key K, hash int64, level int, eq hash.EqHash[K]) (n
 				// size 0 -> simplify to empty
 				return empty[K, V]{}, true
 			case 1:
-				// size 1 -> simplify to singleton
-				singleEntry, singleHash := getFirst(newChildren)
-				return singleton[K, V]{hash: singleHash, entry: *singleEntry}, true
+				// size 1 -> check simplify to singleton
+				firstNode := getFirstNode(newChildren)
+				if firstNode.size() == 1 {
+					singleEntry, singleHash := firstNode.first()
+					return singleton[K, V]{hash: singleHash, entry: *singleEntry}, true
+				}
 			}
 		} else {
 			newChildren = e.children.set(index, newC)
@@ -276,6 +279,13 @@ func getFirst[K, V any](ar sparseArray[node[K, V]]) (*dict.Entry[K, V], int64) {
 		}
 	}
 	return nil, 0
+}
+
+func getFirstNode[K, V any](ar sparseArray[node[K, V]]) node[K, V] {
+	for _, c := range ar.values {
+		return c
+	}
+	return nil
 }
 
 func (e empty[K, V]) iterator() iterable.Iterator[dict.Entry[K, V]] {
