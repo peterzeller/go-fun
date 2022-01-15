@@ -1,8 +1,8 @@
 package iterable
 
-import "github.com/peterzeller/go-fun/v2/zero"
+import "github.com/peterzeller/go-fun/zero"
 
-func Where[A any](cond func(A) bool) func(Iterable[A]) Iterable[A] {
+func Filter[A any](cond func(A) bool) func(Iterable[A]) Iterable[A] {
 	return func(base Iterable[A]) Iterable[A] {
 		return &whereIterable[A]{base, cond}
 	}

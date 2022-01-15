@@ -1,4 +1,4 @@
-module github.com/peterzeller/go-fun/v2
+module github.com/peterzeller/go-fun
 
 go 1.18
 

@@ -3,12 +3,12 @@ package hashdict_test
 import (
 	"testing"
 
-	"github.com/peterzeller/go-fun/v2/dict"
-	"github.com/peterzeller/go-fun/v2/dict/hashdict"
-	"github.com/peterzeller/go-fun/v2/equality"
-	"github.com/peterzeller/go-fun/v2/hash"
-	"github.com/peterzeller/go-fun/v2/list"
-	"github.com/peterzeller/go-fun/v2/reducer"
+	"github.com/peterzeller/go-fun/dict"
+	"github.com/peterzeller/go-fun/dict/hashdict"
+	"github.com/peterzeller/go-fun/equality"
+	"github.com/peterzeller/go-fun/hash"
+	"github.com/peterzeller/go-fun/list"
+	"github.com/peterzeller/go-fun/reducer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

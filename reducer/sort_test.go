@@ -3,8 +3,9 @@ package reducer_test
 import (
 	"testing"
 
-	"github.com/peterzeller/go-fun/v2/reducer"
+	"github.com/peterzeller/go-fun/reducer"
 	"github.com/stretchr/testify/require"
+	"pgregory.net/rapid"
 )
 
 func cmpInt(a, b int) bool {
@@ -28,4 +29,26 @@ func TestSortPartial(t *testing.T) {
 	t.Logf("count = %d", count)
 	require.Equal(t, []int{3}, sorted)
 	require.True(t, count <= 9)
+}
+
+func TestSortRapid(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		s := rapid.SliceOf(rapid.Int()).Draw(t, "slice").([]int)
+		sorted := reducer.Sorted(func(x, y int) bool { return x < y }, reducer.ToSlice[int]()).ApplySlice(s)
+		require.Equal(t, len(s), len(sorted))
+		for i := 0; i < len(sorted)-1; i++ {
+			require.LessOrEqualf(t, sorted[i], sorted[i+1], "list should be sorted: %+v", sorted)
+		}
+	})
+}
+
+func TestSortBig(t *testing.T) {
+	rapid.Check(t, func(t *rapid.T) {
+		s := rapid.SliceOfN(rapid.Int(), 10000, 100000).Draw(t, "slice").([]int)
+		sorted := reducer.Sorted(func(x, y int) bool { return x < y }, reducer.ToSlice[int]()).ApplySlice(s)
+		require.Equal(t, len(s), len(sorted))
+		for i := 0; i < len(sorted)-1; i++ {
+			require.LessOrEqualf(t, sorted[i], sorted[i+1], "list should be sorted: %+v", sorted)
+		}
+	})
 }

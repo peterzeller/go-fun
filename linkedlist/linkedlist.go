@@ -3,10 +3,10 @@ package linkedlist
 import (
 	"fmt"
 
-	"github.com/peterzeller/go-fun/v2/equality"
-	"github.com/peterzeller/go-fun/v2/iterable"
-	"github.com/peterzeller/go-fun/v2/reducer"
-	"github.com/peterzeller/go-fun/v2/zero"
+	"github.com/peterzeller/go-fun/equality"
+	"github.com/peterzeller/go-fun/iterable"
+	"github.com/peterzeller/go-fun/reducer"
+	"github.com/peterzeller/go-fun/zero"
 )
 
 // LinkedList represents an immutable list.

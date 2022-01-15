@@ -1,10 +1,10 @@
 package arraydict
 
 import (
-	"github.com/peterzeller/go-fun/v2/dict"
-	"github.com/peterzeller/go-fun/v2/equality"
-	"github.com/peterzeller/go-fun/v2/iterable"
-	"github.com/peterzeller/go-fun/v2/zero"
+	"github.com/peterzeller/go-fun/dict"
+	"github.com/peterzeller/go-fun/equality"
+	"github.com/peterzeller/go-fun/iterable"
+	"github.com/peterzeller/go-fun/zero"
 )
 
 // ArrayDict is a dict implementation for internal use.

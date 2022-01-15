@@ -1,6 +1,6 @@
 package reducer
 
-import "github.com/peterzeller/go-fun/v2/iterable"
+import "github.com/peterzeller/go-fun/iterable"
 
 func Apply[A, B any](s iterable.Iterable[A], reducer Reducer[A, B]) B {
 	i := reducer()

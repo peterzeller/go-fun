@@ -3,12 +3,12 @@ package hashdict
 import (
 	"fmt"
 
-	"github.com/peterzeller/go-fun/v2/dict"
-	"github.com/peterzeller/go-fun/v2/dict/arraydict"
-	"github.com/peterzeller/go-fun/v2/equality"
-	"github.com/peterzeller/go-fun/v2/hash"
-	"github.com/peterzeller/go-fun/v2/iterable"
-	"github.com/peterzeller/go-fun/v2/zero"
+	"github.com/peterzeller/go-fun/dict"
+	"github.com/peterzeller/go-fun/dict/arraydict"
+	"github.com/peterzeller/go-fun/equality"
+	"github.com/peterzeller/go-fun/hash"
+	"github.com/peterzeller/go-fun/iterable"
+	"github.com/peterzeller/go-fun/zero"
 )
 
 type node[K, V any] interface {

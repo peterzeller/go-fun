@@ -3,10 +3,10 @@ package hashdict
 import (
 	"math/bits"
 
-	"github.com/peterzeller/go-fun/v2/dict"
-	"github.com/peterzeller/go-fun/v2/iterable"
-	"github.com/peterzeller/go-fun/v2/reducer"
-	"github.com/peterzeller/go-fun/v2/zero"
+	"github.com/peterzeller/go-fun/dict"
+	"github.com/peterzeller/go-fun/iterable"
+	"github.com/peterzeller/go-fun/reducer"
+	"github.com/peterzeller/go-fun/zero"
 )
 
 // a sparse array with at most 32 entries

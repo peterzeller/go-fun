@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"hash/fnv"
 
-	"github.com/peterzeller/go-fun/v2/equality"
+	"github.com/peterzeller/go-fun/equality"
 )
 
 // EqHash compines an equals function with a Hash function

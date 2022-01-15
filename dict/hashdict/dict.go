@@ -3,11 +3,11 @@ package hashdict
 import (
 	"fmt"
 
-	"github.com/peterzeller/go-fun/v2/dict"
-	"github.com/peterzeller/go-fun/v2/equality"
-	"github.com/peterzeller/go-fun/v2/hash"
-	"github.com/peterzeller/go-fun/v2/iterable"
-	"github.com/peterzeller/go-fun/v2/zero"
+	"github.com/peterzeller/go-fun/dict"
+	"github.com/peterzeller/go-fun/equality"
+	"github.com/peterzeller/go-fun/hash"
+	"github.com/peterzeller/go-fun/iterable"
+	"github.com/peterzeller/go-fun/zero"
 )
 
 // adapted from https://github.com/andrewoma/dexx/blob/master/collection/src/main/java/com/github/andrewoma/dexx/collection/internal/hashmap/CompactHashMap.java

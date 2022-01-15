@@ -1,11 +1,11 @@
 package hashset
 
 import (
-	"github.com/peterzeller/go-fun/v2/dict"
-	"github.com/peterzeller/go-fun/v2/dict/hashdict"
-	"github.com/peterzeller/go-fun/v2/hash"
-	"github.com/peterzeller/go-fun/v2/iterable"
-	"github.com/peterzeller/go-fun/v2/reducer"
+	"github.com/peterzeller/go-fun/dict"
+	"github.com/peterzeller/go-fun/dict/hashdict"
+	"github.com/peterzeller/go-fun/hash"
+	"github.com/peterzeller/go-fun/iterable"
+	"github.com/peterzeller/go-fun/reducer"
 )
 
 type Set[T any] struct {

@@ -1,10 +1,11 @@
 package reducer_test
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/peterzeller/go-fun/v2/iterable"
-	"github.com/peterzeller/go-fun/v2/reducer"
+	"github.com/peterzeller/go-fun/iterable"
+	"github.com/peterzeller/go-fun/reducer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,6 +21,14 @@ func TestFlatMap(t *testing.T) {
 	plusMinus := reducer.FlatMap(func(x int) iterable.Iterable[int] { return iterable.New(x, -x) },
 		reducer.ToSlice[int]())
 	require.Equal(t, []int{1, -1, 2, -2, 3, -3}, reducer.ApplySlice(s, plusMinus))
+}
+
+func TestFlatMapLimit(t *testing.T) {
+	s := reducer.Apply(iterable.New(1, 2, 3),
+		reducer.FlatMap(func(i int) iterable.Iterable[int] { return iterable.New(-i, i) },
+			reducer.Limit(3,
+				reducer.ToSlice[int]())))
+	require.Equal(t, []int{-1, 1, -2}, s)
 }
 
 func TestFilter(t *testing.T) {
@@ -88,4 +97,101 @@ func TestBook(t *testing.T) {
 		"A": {"S"},
 		"B": {"R", "U"},
 	}, m)
+}
+
+func TestReduce0(t *testing.T) {
+	i := iterable.New(100, 20, 3)
+	r := reducer.Apply(i, reducer.Reduce0(func(x int, y int) int { return x + y }))
+	require.Equal(t, 123, r)
+}
+
+func TestCount(t *testing.T) {
+	count := reducer.Apply(iterable.New(1, 2, 3), reducer.Count[int]())
+	require.Equal(t, 3, count)
+}
+
+func TestAverage(t *testing.T) {
+	avg := reducer.Apply(iterable.New(5, 10, 6), reducer.Average[int]())
+	require.Equal(t, 7.0, avg)
+}
+
+func TestAverageEmpty(t *testing.T) {
+	avg := reducer.Apply(iterable.New[int](), reducer.Average[int]())
+	require.Equal(t, 0.0, avg)
+}
+
+func TestMax(t *testing.T) {
+	avg := reducer.Apply(iterable.New(5, 10, 6), reducer.Max[int]())
+	require.Equal(t, 10, avg)
+}
+
+func TestMin(t *testing.T) {
+	avg := reducer.Apply(iterable.New(5, 10, 3, 6), reducer.Min[int]())
+	require.Equal(t, 3, avg)
+}
+
+func TestForallTrue(t *testing.T) {
+	require.True(t, reducer.Apply(iterable.New(1, 2, 3, 4), reducer.Forall(func(x int) bool { return x <= 4 })))
+}
+
+func TestForallFalse(t *testing.T) {
+	require.False(t, reducer.Apply(iterable.New(1, 2, 3, 4), reducer.Forall(func(x int) bool { return x <= 3 })))
+}
+
+func TestExistsTrue(t *testing.T) {
+	require.True(t, reducer.Apply(iterable.New(1, 2, 3, 4), reducer.Exists(func(x int) bool { return x == 3 })))
+}
+
+func TestExistsFalse(t *testing.T) {
+	require.False(t, reducer.Apply(iterable.New(1, 2, 3, 4), reducer.Exists(func(x int) bool { return x > 4 })))
+}
+
+func TestDoErr(t *testing.T) {
+	count := 0
+	e := fmt.Errorf("test-error")
+	err := reducer.Apply(iterable.New(1, 2, 3, 4), reducer.DoErr(func(x int) error {
+		if x > 2 {
+			return e
+		}
+		count++
+		return nil
+	}))
+	require.Equal(t, e, err)
+	require.Equal(t, 2, count)
+}
+
+func TestDo(t *testing.T) {
+	sum := 0
+	reducer.Apply(iterable.New(1, 2, 3, 4), reducer.Do(func(x int) {
+		sum += x
+	}))
+	require.Equal(t, 10, sum)
+}
+
+func TestGroupByCollect(t *testing.T) {
+	m := reducer.Apply(iterable.New(1, 2, 3, 4, 5, 6), reducer.GroupByCollect(func(x int) int { return x % 2 }))
+	require.Equal(t, map[int][]int{0: {2, 4, 6}, 1: {1, 3, 5}}, m)
+}
+
+func TestToMap(t *testing.T) {
+	m := reducer.Apply(iterable.New(1, 2, 3, 4, 5, 6), reducer.ToMap(func(x int) int { return x % 2 }, func(x int) int { return 10 * x }))
+	require.Equal(t, map[int]int{0: 20, 1: 10}, m)
+}
+
+func TestToMapId(t *testing.T) {
+	m := reducer.Apply(iterable.New(1, 2, 3, 4, 5, 6), reducer.ToMapId(func(x int) int { return x % 2 }))
+	require.Equal(t, map[int]int{0: 2, 1: 1}, m)
+}
+
+func TestToSet(t *testing.T) {
+	s := reducer.Apply(iterable.New(1, 2, 3), reducer.ToSet[int]())
+	require.Equal(t, map[int]bool{1: true, 2: true, 3: true}, s)
+}
+
+func TestApplyMethod(t *testing.T) {
+	require.Equal(t, 5, reducer.Max[int]().Apply(iterable.New(1, 5, 3)))
+}
+
+func TestApplyIteratorMethod(t *testing.T) {
+	require.Equal(t, 5, reducer.Limit(3, reducer.Max[int]()).ApplyIterator(iterable.New(1, 5, 3, 10).Iterator()))
 }

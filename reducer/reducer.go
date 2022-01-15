@@ -1,6 +1,6 @@
 package reducer
 
-import "github.com/peterzeller/go-fun/v2/iterable"
+import "github.com/peterzeller/go-fun/iterable"
 
 // Reducer works on streams of A and produces a B
 type Reducer[A, B any] func() ReducerInstance[A, B]

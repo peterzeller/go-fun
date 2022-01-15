@@ -32,6 +32,7 @@ func Reduce0[A any](combine func(A, A) A) Reducer[A, A] {
 			Step: func(a A) bool {
 				if first {
 					state = a
+					first = false
 				} else {
 					state = combine(state, a)
 				}

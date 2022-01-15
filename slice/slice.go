@@ -1,6 +1,6 @@
 package slice
 
-import "github.com/peterzeller/go-fun/v2/equality"
+import "github.com/peterzeller/go-fun/equality"
 
 // ContainsEq checks whether a slice contains an element
 func ContainsEq[T any](s []T, elem T, eq equality.Equality[T]) bool {

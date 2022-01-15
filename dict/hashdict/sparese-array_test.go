@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/peterzeller/go-fun/v2/dict"
+	"github.com/peterzeller/go-fun/dict"
 	"github.com/stretchr/testify/require"
 	"pgregory.net/rapid"
 )

@@ -1,6 +1,6 @@
 package reducer
 
-import "github.com/peterzeller/go-fun/v2/iterable"
+import "github.com/peterzeller/go-fun/iterable"
 
 func Map[A, B, C any](f func(A) B, r Reducer[B, C]) Reducer[A, C] {
 	return func() ReducerInstance[A, C] {

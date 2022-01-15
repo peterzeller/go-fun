@@ -3,7 +3,7 @@ package mutable
 import (
 	"fmt"
 
-	"github.com/peterzeller/go-fun/v2/zero"
+	"github.com/peterzeller/go-fun/zero"
 )
 
 type Stack[A any] struct {

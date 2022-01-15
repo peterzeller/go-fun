@@ -1,10 +1,10 @@
 package list
 
 import (
-	"github.com/peterzeller/go-fun/v2/equality"
-	"github.com/peterzeller/go-fun/v2/iterable"
-	"github.com/peterzeller/go-fun/v2/slice"
-	"github.com/peterzeller/go-fun/v2/zero"
+	"github.com/peterzeller/go-fun/equality"
+	"github.com/peterzeller/go-fun/iterable"
+	"github.com/peterzeller/go-fun/slice"
+	"github.com/peterzeller/go-fun/zero"
 )
 
 // List is an immutable data type which is backed by a slice.

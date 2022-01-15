@@ -1,8 +1,8 @@
 package reducer
 
 import (
-	"github.com/peterzeller/go-fun/v2/mutable"
-	"github.com/peterzeller/go-fun/v2/zero"
+	"github.com/peterzeller/go-fun/mutable"
+	"github.com/peterzeller/go-fun/zero"
 )
 
 func Sorted[A, B any](cmp func(A, A) bool, next Reducer[A, B]) Reducer[A, B] {
