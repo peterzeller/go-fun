@@ -244,24 +244,12 @@ func (d Dict[K, V]) Filter(cond func(K, V) bool) Dict[K, V] {
 
 var notEqual = fmt.Errorf("not equal")
 
+// Equal checks whether two dictionaries are equal
 func (d Dict[K, V]) Equal(other Dict[K, V], eq equality.Equality[V]) (res bool) {
-	if d.Size() != other.Size() {
-		return false
-	}
-	// we can use iterators, since the iteration order of a trie is deterministic
-	// there is some optimization potential with a recursive equal function that uses reference equality of subtrees
-	it1 := d.Iterator()
-	it2 := other.Iterator()
+	return d.root.equal(other.root, 0, d.keyEq, eq)
+}
 
-	for {
-		e1, ok1 := it1.Next()
-		e2, ok2 := it2.Next()
-		// since sizes are equal, ok1 == ok2
-		if !ok1 && !ok2 {
-			return true
-		}
-		if !d.keyEq.Equal(e1.Key, e2.Key) || !eq.Equal(e1.Value, e2.Value) {
-			return false
-		}
-	}
+// SubMapOf checks whether this dict contains all keys and values of the other dict (the other map may contain additional entries)
+func (d Dict[K, V]) SubMapOf(other Dict[K, V], eq equality.Equality[V]) (res bool) {
+	return d.root.subMapOf(other.root, 0, d.keyEq, eq)
 }

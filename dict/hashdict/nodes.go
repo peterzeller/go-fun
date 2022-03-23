@@ -19,6 +19,8 @@ type node[K, V any] interface {
 	first() (*dict.Entry[K, V], int64)
 	iterator() iterable.Iterator[dict.Entry[K, V]]
 	checkInvariant(level int, prefix int64, eq hash.EqHash[K]) error
+	equal(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool
+	subMapOf(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool
 	fmt.Stringer
 }
 
@@ -701,7 +703,11 @@ func (e trie[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) e
 	for it := iterable.Start[dict.Entry[int, node[K, V]]](e.children); it.HasNext(); it.Next() {
 		i := it.Current().Key
 		c := it.Current().Value
-		count += c.size()
+		size := c.size()
+		if size == 0 {
+			return fmt.Errorf("empty trie node at index %d", i)
+		}
+		count += size
 		err := c.checkInvariant(level+5, prefix|(int64(i)<<level), eq)
 		if err != nil {
 			return fmt.Errorf("invalid node at index %d: %w", i, err)
@@ -710,8 +716,8 @@ func (e trie[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) e
 	if count != e.count {
 		return fmt.Errorf("Wrong count in trie: %d (should be %d)", e.count, count)
 	}
-	if count == 0 {
-		return fmt.Errorf("empty trie")
+	if count <= 1 {
+		return fmt.Errorf("trie with only %d elements", count)
 	}
 	return nil
 }
@@ -730,4 +736,137 @@ func (e bucket[K, V]) String() string {
 
 func (e trie[K, V]) String() string {
 	return fmt.Sprintf("trie%+v", iterable.String[dict.Entry[int, node[K, V]]](e.children))
+}
+
+func (e empty[K, V]) equal(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool {
+	return other.size() == 0
+}
+
+func (e singleton[K, V]) equal(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool {
+	if other.size() != 1 {
+		return false
+	}
+	if otherS, ok := other.(singleton[K, V]); ok {
+		return e.hash == otherS.hash &&
+			keyEq.Equal(e.entry.Key, otherS.entry.Key) &&
+			valueEq.Equal(e.entry.Value, otherS.entry.Value)
+	}
+	return false
+}
+
+func (e bucket[K, V]) equal(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool {
+	if e.size() != other.size() {
+		return false
+	}
+	switch otherB := other.(type) {
+	case bucket[K, V]:
+		if e.hash != otherB.hash {
+			return false
+		}
+	outerLoop:
+		for it := iterable.Start[dict.Entry[K, V]](e.entries); it.HasNext(); it.Next() {
+			e1 := it.Current()
+			for it2 := iterable.Start[dict.Entry[K, V]](e.entries); it2.HasNext(); it2.Next() {
+				e2 := it.Current()
+				if keyEq.Equal(e1.Key, e2.Key) {
+					if !valueEq.Equal(e1.Value, e2.Value) {
+						return false
+					}
+					continue outerLoop
+				}
+			}
+			return false
+		}
+		return true
+	case trie[K, V]:
+		if otherB.children.size() != 1 {
+			return false
+		}
+		return e.equal(getFirstNode(otherB.children), level+5, keyEq, valueEq)
+	}
+	return false
+}
+
+func (e trie[K, V]) equal(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool {
+	switch o := other.(type) {
+	case empty[K, V]:
+		return false
+	case singleton[K, V]:
+		return false
+	case bucket[K, V]:
+		// switch order
+		return o.equal(e, level, keyEq, valueEq)
+	case trie[K, V]:
+		if e.size() != other.size() {
+			return false
+		}
+		for i := 0; i < 32; i++ {
+			c1, ok1 := e.children.get(i)
+			c2, ok2 := o.children.get(i)
+			if ok1 != ok2 {
+				return false
+			}
+			if ok1 && ok2 {
+				if !c1.equal(c2, level+5, keyEq, valueEq) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func (e empty[K, V]) subMapOf(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool {
+	return true
+}
+
+func (e singleton[K, V]) subMapOf(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool {
+	if v, ok := other.get0(e.entry.Key, e.hash, level, keyEq); ok {
+		return valueEq.Equal(e.entry.Value, v)
+	}
+	return false
+}
+
+func (e bucket[K, V]) subMapOf(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool {
+	if e.size() > other.size() {
+		return false
+	}
+	for it := iterable.Start[dict.Entry[K, V]](e.entries); it.HasNext(); it.Next() {
+		if v, ok := other.get0(it.Current().Key, e.hash, level, keyEq); ok {
+			if !valueEq.Equal(it.Current().Value, v) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (e trie[K, V]) subMapOf(other node[K, V], level int, keyEq hash.EqHash[K], valueEq equality.Equality[V]) bool {
+	switch o := other.(type) {
+	case empty[K, V]:
+		return false
+	case singleton[K, V]:
+		return false
+	case bucket[K, V]:
+		if e.children.size() != 1 {
+			return false
+		}
+		return getFirstNode(e.children).subMapOf(other, level+5, keyEq, valueEq)
+	case trie[K, V]:
+		for i := 0; i < 32; i++ {
+			c1, ok1 := e.children.get(i)
+			c2, ok2 := o.children.get(i)
+			if ok1 && !ok2 {
+				return false
+			}
+			if ok1 && ok2 {
+				if !c1.subMapOf(c2, level+5, keyEq, valueEq) {
+					return false
+				}
+			}
+		}
+		return true
+	}
+	return false
 }
