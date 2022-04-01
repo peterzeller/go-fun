@@ -2,6 +2,7 @@ package linkedlist
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/peterzeller/go-fun/equality"
 	"github.com/peterzeller/go-fun/iterable"
@@ -34,6 +35,7 @@ func (l *LinkedList[T]) Length() int {
 	state := l
 	count := 0
 	for state != nil {
+		count++
 		state = state.tail
 	}
 	return count
@@ -71,17 +73,21 @@ func (l *LinkedList[T]) Tail() *LinkedList[T] {
 // Append another list to this list.
 func (l *LinkedList[T]) Append(r *LinkedList[T]) *LinkedList[T] {
 	var prev *LinkedList[T]
+	var res *LinkedList[T]
 	s := l
-	res := r
 	for s != nil {
-		res = &LinkedList[T]{
+		node := &LinkedList[T]{
 			head: s.head,
 			tail: r,
 		}
-		if prev != nil {
-			prev.tail = res
+		if res == nil {
+			res = node
 		}
-		prev = res
+		if prev != nil {
+			prev.tail = node
+		}
+		prev = node
+		s = s.tail
 	}
 	return res
 }
@@ -148,7 +154,7 @@ func (l *LinkedList[T]) Exists(cond func(T) bool) bool {
 	return reducer.Apply[T](l, reducer.Exists(cond))
 }
 
-// Skip the first n element of the list
+// Skip the first n element of the list (also named Drop in other languages)
 func (l *LinkedList[T]) Skip(n int) *LinkedList[T] {
 	res := l
 	for i := 0; i < n; i++ {
@@ -160,22 +166,53 @@ func (l *LinkedList[T]) Skip(n int) *LinkedList[T] {
 	return res
 }
 
-// Limit the length of the list and take only the first n elements.
+// Limit the length of the list and take only the first n elements (also named Take in other languages).
 func (l *LinkedList[T]) Limit(n int) *LinkedList[T] {
 	current := l
-	var res *LinkedList[T]
+	var resHead *LinkedList[T]
+	var resTail *LinkedList[T]
 	var prev *LinkedList[T]
 	for i := 0; i < n; i++ {
 		if current == nil {
-			return res
+			return resTail
 		}
-		res = &LinkedList[T]{
+		resTail = &LinkedList[T]{
 			head: current.head,
 		}
-		if prev != nil {
-			prev.tail = res
+		if resHead == nil {
+			resHead = resTail
 		}
-		prev = res
+		if prev != nil {
+			prev.tail = resTail
+		}
+		prev = resTail
+		current = current.tail
+	}
+	return resHead
+}
+
+func (l *LinkedList[T]) String() string {
+	current := l
+	var s strings.Builder
+	s.WriteString("[")
+	first := true
+	for current != nil {
+		if !first {
+			s.WriteString(", ")
+		}
+		s.WriteString(fmt.Sprintf("%v", current.head))
+		first = false
+		current = current.tail
+	}
+	s.WriteString("]")
+	return s.String()
+}
+
+func (l *LinkedList[T]) ToSlice() []T {
+	current := l
+	var res []T
+	for current != nil {
+		res = append(res, current.head)
 		current = current.tail
 	}
 	return res
