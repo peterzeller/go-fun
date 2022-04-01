@@ -19,3 +19,14 @@ func String[T any](i Iterable[T]) string {
 	res.WriteString("]")
 	return res.String()
 }
+
+func IteratorToSlice[T any](it Iterator[T]) []T {
+	var res []T
+	for {
+		x, ok := it.Next()
+		if !ok {
+			return res
+		}
+		res = append(res, x)
+	}
+}

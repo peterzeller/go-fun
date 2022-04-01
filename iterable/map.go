@@ -1,5 +1,7 @@
 package iterable
 
+import "github.com/peterzeller/go-fun/zero"
+
 func Map[A, B any](f func(A) B) func(Iterable[A]) Iterable[B] {
 	return func(base Iterable[A]) Iterable[B] {
 		return &mapIterable[A, B]{base, f}
@@ -32,4 +34,29 @@ func (i *mapIterator[A, B]) Next() (B, bool) {
 	}
 	var b B
 	return b, false
+}
+
+func FlatMap[A, B any](f func(A) Iterable[B]) func(Iterable[A]) Iterable[B] {
+	return func(base Iterable[A]) Iterable[B] {
+		return IterableFun[B](func() Iterator[B] {
+			it := base.Iterator()
+			var current Iterator[B]
+			return Fun[B](func() (B, bool) {
+				for {
+					if current == nil {
+						a, ok := it.Next()
+						if !ok {
+							return zero.Value[B](), false
+						}
+						current = f(a).Iterator()
+					}
+					b, ok := current.Next()
+					if ok {
+						return b, true
+					}
+					current = nil
+				}
+			})
+		})
+	}
 }
