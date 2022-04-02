@@ -243,3 +243,30 @@ func (l *List[T]) ToSlice() []T {
 	}
 	return res
 }
+
+func (l *List[T]) FindAndRemove(cond func(T) bool) (T, *List[T], bool) {
+	var prev, resultFirst *List[T]
+	c := l
+	for c != nil {
+		if cond(c.head) {
+			if prev == nil {
+				resultFirst = c.tail
+			} else {
+				prev.tail = c.tail
+			}
+			return c.head, resultFirst, true
+		}
+		node := &List[T]{
+			head: c.head,
+		}
+		if resultFirst == nil {
+			resultFirst = node
+		}
+		if prev != nil {
+			prev.tail = node
+		}
+		prev = node
+		c = c.tail
+	}
+	return zero.Value[T](), l, false
+}
