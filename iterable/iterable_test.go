@@ -36,13 +36,13 @@ func TestLoop(t *testing.T) {
 
 func TestMap(t *testing.T) {
 	s := iterable.FromSlice([]int{1, 2, 3})
-	s2 := iterable.Map(func(x int) string { return fmt.Sprintf("x%d", x) })(s)
+	s2 := iterable.Map(s, func(x int) string { return fmt.Sprintf("x%d", x) })
 	require.Equal(t, []string{"x1", "x2", "x3"}, iterable.ToSlice(s2))
 }
 
 func TestMapIterator(t *testing.T) {
 	s := iterable.FromSlice([]int{1, 2, 3})
-	it := iterable.MapIterator(func(x int) string { return fmt.Sprintf("x%d", x) })(s.Iterator())
+	it := iterable.MapIterator(s.Iterator(), func(x int) string { return fmt.Sprintf("x%d", x) })
 	a, ok := it.Next()
 	require.True(t, ok)
 	require.Equal(t, "x1", a)
@@ -64,7 +64,7 @@ func TestToString(t *testing.T) {
 func TestWhere(t *testing.T) {
 	a := iterable.FromSlice([]int{1, 2, 3, 4, 5, 6})
 	isEven := func(x int) bool { return x%2 == 0 }
-	require.Equal(t, []int{2, 4, 6}, iterable.ToSlice(iterable.Filter(isEven)(a)))
+	require.Equal(t, []int{2, 4, 6}, iterable.ToSlice(iterable.Filter(a, isEven)))
 
 }
 

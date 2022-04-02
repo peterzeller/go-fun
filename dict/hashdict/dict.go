@@ -80,12 +80,12 @@ func (d Dict[K, V]) Iterator() iterable.Iterator[dict.Entry[K, V]] {
 
 // Keys in the dictionary.
 func (d Dict[K, V]) Keys() iterable.Iterable[K] {
-	return iterable.Map(func(e dict.Entry[K, V]) K { return e.Key })(d)
+	return iterable.Map[dict.Entry[K, V], K](d, func(e dict.Entry[K, V]) K { return e.Key })
 }
 
 // Values in the dictionary
 func (d Dict[K, V]) Values() iterable.Iterable[V] {
-	return iterable.Map(func(e dict.Entry[K, V]) V { return e.Value })(d)
+	return iterable.Map[dict.Entry[K, V], V](d, func(e dict.Entry[K, V]) V { return e.Value })
 }
 
 // Number of entries in the dictionary

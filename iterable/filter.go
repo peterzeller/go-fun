@@ -2,10 +2,8 @@ package iterable
 
 import "github.com/peterzeller/go-fun/zero"
 
-func Filter[A any](cond func(A) bool) func(Iterable[A]) Iterable[A] {
-	return func(base Iterable[A]) Iterable[A] {
-		return &whereIterable[A]{base, cond}
-	}
+func Filter[A any](base Iterable[A], cond func(A) bool) Iterable[A] {
+	return &whereIterable[A]{base, cond}
 }
 
 type whereIterable[A any] struct {

@@ -2,16 +2,12 @@ package iterable
 
 import "github.com/peterzeller/go-fun/zero"
 
-func Map[A, B any](f func(A) B) func(Iterable[A]) Iterable[B] {
-	return func(base Iterable[A]) Iterable[B] {
-		return &mapIterable[A, B]{base, f}
-	}
+func Map[A, B any](base Iterable[A], f func(A) B) Iterable[B] {
+	return &mapIterable[A, B]{base, f}
 }
 
-func MapIterator[A, B any](f func(A) B) func(Iterator[A]) Iterator[B] {
-	return func(base Iterator[A]) Iterator[B] {
-		return &mapIterator[A, B]{base, f}
-	}
+func MapIterator[A, B any](base Iterator[A], f func(A) B) Iterator[B] {
+	return &mapIterator[A, B]{base, f}
 }
 
 type mapIterable[A, B any] struct {
@@ -36,27 +32,25 @@ func (i *mapIterator[A, B]) Next() (B, bool) {
 	return b, false
 }
 
-func FlatMap[A, B any](f func(A) Iterable[B]) func(Iterable[A]) Iterable[B] {
-	return func(base Iterable[A]) Iterable[B] {
-		return IterableFun[B](func() Iterator[B] {
-			it := base.Iterator()
-			var current Iterator[B]
-			return Fun[B](func() (B, bool) {
-				for {
-					if current == nil {
-						a, ok := it.Next()
-						if !ok {
-							return zero.Value[B](), false
-						}
-						current = f(a).Iterator()
+func FlatMap[A, B any](base Iterable[A], f func(A) Iterable[B]) Iterable[B] {
+	return IterableFun[B](func() Iterator[B] {
+		it := base.Iterator()
+		var current Iterator[B]
+		return Fun[B](func() (B, bool) {
+			for {
+				if current == nil {
+					a, ok := it.Next()
+					if !ok {
+						return zero.Value[B](), false
 					}
-					b, ok := current.Next()
-					if ok {
-						return b, true
-					}
-					current = nil
+					current = f(a).Iterator()
 				}
-			})
+				b, ok := current.Next()
+				if ok {
+					return b, true
+				}
+				current = nil
+			}
 		})
-	}
+	})
 }
