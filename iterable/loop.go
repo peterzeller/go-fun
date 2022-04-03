@@ -33,3 +33,14 @@ func (l *LoopIterator[T]) Next() {
 func (l *LoopIterator[T]) Current() T {
 	return l.current
 }
+
+func Foreach[T](i Iterable[T], f func(elem T)) {
+	it := i.Iterator()
+	for {
+		elem, ok := it.Next()
+		if !ok {
+			return
+		}
+		f(elem)
+	}
+}
