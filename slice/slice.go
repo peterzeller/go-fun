@@ -67,3 +67,12 @@ func PrefixOf[T any](a, b []T, eq equality.Equality[T]) bool {
 	}
 	return true
 }
+
+func IndexOf[T any](elem T, elems []T, eq equality.Equality[T]) int {
+	for i, t := range elems {
+		if eq.Equal(t, elem) {
+			return i
+		}
+	}
+	return -1
+}

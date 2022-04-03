@@ -44,3 +44,8 @@ func TestPrefixOf(t *testing.T) {
 	require.False(t, slice.PrefixOf([]int{1, 2}, []int{2, 1}, equality.Default[int]()))
 	require.False(t, slice.PrefixOf([]int{1, 2, 3}, []int{1, 2}, equality.Default[int]()))
 }
+
+func TestIndexOf(t *testing.T) {
+	require.Equal(t, 2, slice.IndexOf(2, []int{0, 1, 2, 3}, equality.Default[int]()))
+	require.Equal(t, -1, slice.IndexOf(4, []int{0, 1, 2, 3}, equality.Default[int]()))
+}
