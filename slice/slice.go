@@ -68,6 +68,7 @@ func PrefixOf[T any](a, b []T, eq equality.Equality[T]) bool {
 	return true
 }
 
+// IndexOf returns the index of the first occurrence of elem in the slice elems or -1 if elem is not in the slice.
 func IndexOf[T any](elem T, elems []T, eq equality.Equality[T]) int {
 	for i, t := range elems {
 		if eq.Equal(t, elem) {
@@ -75,4 +76,9 @@ func IndexOf[T any](elem T, elems []T, eq equality.Equality[T]) int {
 		}
 	}
 	return -1
+}
+
+// Remove removes the element at the given index from the slice and returns the modified slice.
+func Remove[T any](s []T, index int) []T {
+	return append(s[:index], s[index+1:]...)
 }

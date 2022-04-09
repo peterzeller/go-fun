@@ -34,7 +34,8 @@ func (l *LoopIterator[T]) Current() T {
 	return l.current
 }
 
-func Foreach[T](i Iterable[T], f func(elem T)) {
+// Foreach runs the function f on each element of the iterable.
+func Foreach[T any](i Iterable[T], f func(elem T)) {
 	it := i.Iterator()
 	for {
 		elem, ok := it.Next()

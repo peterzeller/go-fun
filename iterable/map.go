@@ -1,6 +1,9 @@
 package iterable
 
-import "github.com/peterzeller/go-fun/zero"
+import (
+	"github.com/peterzeller/go-fun/slice"
+	"github.com/peterzeller/go-fun/zero"
+)
 
 func Map[A, B any](base Iterable[A], f func(A) B) Iterable[B] {
 	return &mapIterable[A, B]{base, f}
@@ -50,6 +53,46 @@ func FlatMap[A, B any](base Iterable[A], f func(A) Iterable[B]) Iterable[B] {
 					return b, true
 				}
 				current = nil
+			}
+		})
+	})
+}
+
+func FlatMapBreadthFirst[A, B any](base Iterable[A], f func(A) Iterable[B]) Iterable[B] {
+	return IterableFun[B](func() Iterator[B] {
+		it := base.Iterator()
+		firstPass := true
+		var iterators []Iterator[B]
+		pos := 0
+		return Fun[B](func() (B, bool) {
+			for {
+				if !firstPass && len(iterators) == 0 {
+					return zero.Value[B](), false
+				}
+				if pos >= len(iterators) {
+					if firstPass {
+						// get next element from base iterator
+						i, ok := it.Next()
+						if ok {
+							iterators = append(iterators, f(i).Iterator())
+						} else {
+							// no more element in base iterator
+							firstPass = false
+							pos = 0
+							continue
+						}
+					} else {
+						pos = 0
+						continue
+					}
+				}
+				r, ok := iterators[pos].Next()
+				if ok {
+					pos++
+					return r, true
+				}
+				// remove iterator from iterators list and try with next position
+				iterators = slice.Remove(iterators, pos)
 			}
 		})
 	})
