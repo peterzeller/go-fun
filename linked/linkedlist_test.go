@@ -1,6 +1,7 @@
 package linked_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/peterzeller/go-fun/iterable"
@@ -68,4 +69,13 @@ func TestList_FindAndRemove5(t *testing.T) {
 		return i == 10
 	})
 	require.False(t, ok)
+}
+
+func ExampleList_Reversed() {
+	list := linked.New(1, 2, 3, 4, 5, 6, 7, 8)
+	reversed := list.Reversed()
+	fmt.Printf("list = %v\n", list)
+	fmt.Printf("reversed = %v\n", reversed)
+	// output: list = [1, 2, 3, 4, 5, 6, 7, 8]
+	// reversed = [8, 7, 6, 5, 4, 3, 2, 1]
 }

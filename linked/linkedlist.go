@@ -270,3 +270,12 @@ func (l *List[T]) FindAndRemove(cond func(T) bool) (T, *List[T], bool) {
 	}
 	return zero.Value[T](), l, false
 }
+
+// Reversed returns a new list with the elements in reversed order.
+func (l *List[T]) Reversed() *List[T] {
+	var res *List[T]
+	for c := l; c != nil; c = c.tail {
+		res = Cons(c.head, res)
+	}
+	return res
+}
