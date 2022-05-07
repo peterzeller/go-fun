@@ -14,12 +14,14 @@ func (f Fun[T]) Equal(a, b T) bool {
 	return f(a, b)
 }
 
+// Default equality on comparable types.
 func Default[T comparable]() Equality[T] {
 	return Fun[T](func(a, b T) bool {
 		return a == b
 	})
 }
 
+// Natural equality on types that implement the Equal interface.
 func Natural[T Equal[T]]() Equality[T] {
 	return Fun[T](func(a, b T) bool {
 		return a.Equal(b)
