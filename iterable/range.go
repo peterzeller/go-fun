@@ -2,10 +2,10 @@ package iterable
 
 // Number type for built-in numbers
 type Number interface {
-	byte | rune | uintptr |
-		int | int8 | int16 | int32 | int64 |
+	int | int8 | int16 | int32 | int64 |
 		uint | uint8 | uint16 | uint32 | uint64 |
-		float32 | float64
+		float32 | float64 |
+		uintptr
 }
 
 // Range of numbers from start (inclusive) to end (exclusive)
