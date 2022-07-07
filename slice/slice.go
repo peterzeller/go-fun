@@ -82,3 +82,28 @@ func IndexOf[T any](elem T, elems []T, eq equality.Equality[T]) int {
 func Remove[T any](s []T, index int) []T {
 	return append(s[:index], s[index+1:]...)
 }
+
+// RemoveFirst removes the first occurrence of an element from the slice and returns the modified slice.
+func RemoveFirst[T any](s []T, elem T, eq equality.Equality[T]) []T {
+	res := make([]T, 0, len(s))
+	removed := false
+	for _, t := range s {
+		if !removed && eq.Equal(t, elem) {
+			removed = true
+		} else {
+			res = append(res, t)
+		}
+	}
+	return res
+}
+
+// RemoveAll removes all occurrences of the element from the slice and returns the modified slice.
+func RemoveAll[T any](s []T, elem T, eq equality.Equality[T]) []T {
+	res := make([]T, 0, len(s))
+	for _, t := range s {
+		if !eq.Equal(t, elem) {
+			res = append(res, t)
+		}
+	}
+	return res
+}

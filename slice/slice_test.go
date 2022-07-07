@@ -1,6 +1,7 @@
 package slice_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/peterzeller/go-fun/equality"
@@ -48,4 +49,25 @@ func TestPrefixOf(t *testing.T) {
 func TestIndexOf(t *testing.T) {
 	require.Equal(t, 2, slice.IndexOf(2, []int{0, 1, 2, 3}, equality.Default[int]()))
 	require.Equal(t, -1, slice.IndexOf(4, []int{0, 1, 2, 3}, equality.Default[int]()))
+}
+
+func ExampleRemove() {
+	l := []int{4, 13, 7, 8}
+	r := slice.Remove(l, 2)
+	fmt.Printf("r = %#v\n", r)
+	// output: r = []int{4, 13, 8}
+}
+
+func ExampleRemoveAll() {
+	l := []int{4, 13, 7, 13, 13, 8}
+	r := slice.RemoveAll(l, 13, equality.Default[int]())
+	fmt.Printf("r = %#v\n", r)
+	// output: r = []int{4, 7, 8}
+}
+
+func ExampleRemoveFirst() {
+	l := []int{4, 13, 7, 13, 13, 8}
+	r := slice.RemoveFirst(l, 13, equality.Default[int]())
+	fmt.Printf("r = %#v\n", r)
+	// output: r = []int{4, 7, 13, 13, 8}
 }
