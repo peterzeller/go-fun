@@ -1,5 +1,7 @@
 package equality
 
+import "strings"
+
 type Equal[T any] interface {
 	Equal(other T) bool
 }
@@ -28,6 +30,7 @@ func Natural[T Equal[T]]() Equality[T] {
 	})
 }
 
+// Slice equality, given equality for slice elements.
 func Slice[T any](e Equality[T]) Equality[[]T] {
 	return Fun[[]T](func(a, b []T) bool {
 		if len(a) != len(b) {
@@ -42,6 +45,12 @@ func Slice[T any](e Equality[T]) Equality[[]T] {
 	})
 }
 
+// SliceNatural is equivalent to Slice(Natural[T]())
 func SliceNatural[T Equal[T]]() Equality[[]T] {
 	return Slice(Natural[T]())
+}
+
+// StringIgnoreCase implements equality while treating upper- and lower-case letters as equivalent (using strings.EqualFold)
+func StringIgnoreCase() Equality[string] {
+	return Fun[string](strings.EqualFold)
 }

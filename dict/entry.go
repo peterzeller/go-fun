@@ -2,6 +2,7 @@ package dict
 
 import "fmt"
 
+// Entry in a dictionary
 type Entry[K, V any] struct {
 	Key   K
 	Value V
