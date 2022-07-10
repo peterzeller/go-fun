@@ -1,25 +1,28 @@
 # Go-fun
 
-![pipeline status](https://github.com/peterzeller/go-fun/actions/workflows/go.yml/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/peterzeller/go-fun/badge.svg)](https://coveralls.io/github/peterzeller/go-fun)
+![pipeline status](https://github.com/peterzeller/go-fun/actions/workflows/go.yml/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/peterzeller/go-fun/badge.svg)](https://coveralls.io/github/peterzeller/go-fun) [![Go Reference](https://pkg.go.dev/badge/github.com/peterzeller/go-fun.svg)](https://pkg.go.dev/github.com/peterzeller/go-fun)
 
 Utilities and immutable collections for functional programming in Golang.
-
-This is an experimental library to play with the new Generics Feature in Go 1.18.
-
 
 ## Features
 
 - Immutable data structures
     - List
-	- Dict
-		- HashDict
-	- Set
-		- HashSet
-- Mutable data structures
-    - Stack
-- Iterable abstraction
-- Reducers for transforming data (map, filter, group by, etc)
-- Equality and Hash type classes
+      - Slice based (package [list](./list))
+      - Singly linked list (package [linked](./linked))
+    - Dict (package [dict](./dict))
+        - HashDict (package [dict/hashdict](./dict/hashdict))
+        - ArrayDict (package [dict/arraydict](./dict/arraydict))
+    - Set (package [set](./set))
+        - HashSet (package [dict/hashset](./dict/hashset))
+- Iterable abstraction (package [iterable](./iterable))
+- Reducers for transforming data (map, filter, group by, etc) (package [reducer](./reducer))
+- Equality type class (package [equality](./equality))
+- Hash type class (package [hash](./hash))
+- Generic Zero Value (package [zero](./zero))
+- Generic Slice functions (package [slice](./slice))
+- Mutable data structures (package [mutable](./mutable))
+    - Stack 
 
 ## Why immutable collections?
 
