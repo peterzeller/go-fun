@@ -79,3 +79,44 @@ func Gob[T comparable]() EqHash[T] {
 		},
 	}
 }
+
+// Map creates an EqHash instance for A, given an EqHash instance for B and a function from A to B
+func Map[A, B any](base EqHash[B], f func(A) B) EqHash[A] {
+	return Fun[A]{
+		Eq: func(a, b A) bool {
+			return base.Equal(f(a), f(b))
+		},
+		H: func(v A) int64 {
+			return base.Hash(f(v))
+		},
+	}
+}
+
+type Pair[A, B any] struct {
+	A A
+	B B
+}
+
+// PairHash creates an EqHash instance for a pair, combining two EqHash instances
+func PairHash[A, B any](a EqHash[A], b EqHash[B]) EqHash[Pair[A, B]] {
+	return Fun[Pair[A, B]]{
+		Eq: func(x, y Pair[A, B]) bool {
+			return a.Equal(x.A, y.A) && b.Equal(x.B, y.B)
+		},
+		H: func(v Pair[A, B]) int64 {
+			return CombineHashes(a.Hash(v.A), b.Hash(v.B))
+		},
+	}
+}
+
+// CombineHashes calculates a combined hash for the given hash values
+func CombineHashes(hashes ...int64) int64 {
+	if len(hashes) == 0 {
+		return 0
+	}
+	result := int64(1)
+	for _, element := range hashes {
+		result = 31*result + element
+	}
+	return result
+}
