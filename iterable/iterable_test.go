@@ -91,3 +91,23 @@ func TestRangeStepRev(t *testing.T) {
 func TestRangeIStepRev(t *testing.T) {
 	require.Equal(t, []int{13, 10, 7, 4, 1}, iterable.ToSlice(iterable.RangeIStep(13, 1, -3)))
 }
+
+func ExampleEmpty() {
+	it := iterable.Empty[int]()
+	fmt.Printf("it = %s", iterable.String(it))
+	// output: it = []
+}
+
+func ExampleSingleton() {
+	it := iterable.Singleton(42)
+	fmt.Printf("it = %s", iterable.String(it))
+	// output: it = [42]
+}
+
+func ExampleForeach() {
+	it := iterable.New(1, 2, 3, 4, 5)
+	iterable.Foreach(it, func(i int) {
+		fmt.Printf("%d, ", i)
+	})
+	// output: 1, 2, 3, 4, 5,
+}

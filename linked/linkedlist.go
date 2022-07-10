@@ -143,7 +143,7 @@ func (l *List[T]) Equal(other *List[T], eq equality.Equality[T]) bool {
 		if a == nil || b == nil {
 			return false
 		}
-		if !eq.Equal(l.head, other.head) {
+		if !eq.Equal(a.head, b.head) {
 			return false
 		}
 		a = a.tail
@@ -162,7 +162,7 @@ func (l *List[T]) PrefixOf(other *List[T], eq equality.Equality[T]) bool {
 		if b == nil {
 			return false
 		}
-		if !eq.Equal(l.head, other.head) {
+		if !eq.Equal(a.head, b.head) {
 			return false
 		}
 		a = a.tail
