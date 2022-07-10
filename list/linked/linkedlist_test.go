@@ -6,7 +6,7 @@ import (
 
 	"github.com/peterzeller/go-fun/equality"
 	"github.com/peterzeller/go-fun/iterable"
-	"github.com/peterzeller/go-fun/linked"
+	"github.com/peterzeller/go-fun/list/linked"
 	"github.com/stretchr/testify/require"
 )
 

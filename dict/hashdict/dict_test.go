@@ -7,7 +7,7 @@ import (
 	"github.com/peterzeller/go-fun/dict/hashdict"
 	"github.com/peterzeller/go-fun/equality"
 	"github.com/peterzeller/go-fun/hash"
-	"github.com/peterzeller/go-fun/list"
+	"github.com/peterzeller/go-fun/list/list"
 	"github.com/peterzeller/go-fun/reducer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

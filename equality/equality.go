@@ -2,14 +2,17 @@ package equality
 
 import "strings"
 
+// Equal is an interface for types that provide an Equal method
 type Equal[T any] interface {
 	Equal(other T) bool
 }
 
+// Equality models a type class for types with equality
 type Equality[T any] interface {
 	Equal(a, b T) bool
 }
 
+// Fun transforms an equality function into an Equality instance
 type Fun[T any] func(a, b T) bool
 
 func (f Fun[T]) Equal(a, b T) bool {

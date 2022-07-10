@@ -5,7 +5,7 @@ import (
 
 	"github.com/peterzeller/go-fun/equality"
 	"github.com/peterzeller/go-fun/iterable"
-	"github.com/peterzeller/go-fun/list"
+	"github.com/peterzeller/go-fun/list/list"
 )
 
 func ExampleList_At() {

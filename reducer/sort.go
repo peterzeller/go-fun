@@ -1,7 +1,7 @@
 package reducer
 
 import (
-	"github.com/peterzeller/go-fun/mutable"
+	"github.com/peterzeller/go-fun/internal/mutable"
 	"github.com/peterzeller/go-fun/zero"
 )
 

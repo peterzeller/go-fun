@@ -7,9 +7,9 @@ Utilities and immutable collections for functional programming in Golang.
 ## Features
 
 - Immutable data structures
-    - List
-      - Slice based (package [list](./list))
-      - Singly linked list (package [linked](./linked))
+    - List (package [list](./list))
+      - Slice based (package [list](./list/list))
+      - Singly linked list (package [linked](./list/linked))
     - Dict (package [dict](./dict))
         - HashDict (package [dict/hashdict](./dict/hashdict))
         - ArrayDict (package [dict/arraydict](./dict/arraydict))
