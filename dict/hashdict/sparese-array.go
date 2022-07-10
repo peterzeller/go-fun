@@ -67,9 +67,7 @@ func (a sparseArray[T]) set(i int, value T) (res sparseArray[T]) {
 	} else {
 		// overwrite existing value
 		newValues := make([]T, len(a.values))
-		for i, v := range a.values {
-			newValues[i] = v
-		}
+		copy(newValues, a.values)
 		realIndex := bits.OnesCount32(uint32(a.bitmap & (mask - 1)))
 		newValues[realIndex] = value
 		res.values = newValues

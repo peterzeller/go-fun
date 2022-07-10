@@ -403,7 +403,7 @@ func TestMerge2(t *testing.T) {
 
 func TestMerge3(t *testing.T) {
 	a := New[key, int](keyHash)
-	b := New[key, int](keyHash, dict.Entry[key, int]{"abbb", 1}, dict.Entry[key, int]{"ababbb", 2})
+	b := New[key, int](keyHash, dict.Entry[key, int]{Key: "abbb", Value: 1}, dict.Entry[key, int]{Key: "ababbb", Value: 2})
 	c := a.MergeLeft(b)
 	log.Printf("a = %+v", a)
 	log.Printf("b = %+v", b)

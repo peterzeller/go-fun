@@ -708,7 +708,7 @@ func (e trie[K, V]) checkInvariant(level int, prefix int64, eq hash.EqHash[K]) e
 		}
 	}
 	if count != e.count {
-		return fmt.Errorf("Wrong count in trie: %d (should be %d)", e.count, count)
+		return fmt.Errorf("wrong count in trie: %d (should be %d)", e.count, count)
 	}
 	if count == 0 {
 		return fmt.Errorf("empty trie")

@@ -242,8 +242,6 @@ func (d Dict[K, V]) Filter(cond func(K, V) bool) Dict[K, V] {
 	}
 }
 
-var notEqual = fmt.Errorf("not equal")
-
 func (d Dict[K, V]) Equal(other Dict[K, V], eq equality.Equality[V]) (res bool) {
 	if d.Size() != other.Size() {
 		return false
