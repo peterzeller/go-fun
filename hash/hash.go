@@ -10,6 +10,8 @@ import (
 // EqHash compines an equals function with a Hash function
 type EqHash[T any] interface {
 	equality.Equality[T]
+	// Hash deterministically computes an int value fom a value.
+	// Ideally, distinct values should have a high chance of distinct hash values, and computation should be fast.
 	Hash(v T) int64
 }
 
@@ -26,17 +28,11 @@ func (f Fun[T]) Hash(a T) int64 {
 	return f.H(a)
 }
 
-var _ EqHash[int] = Fun[int]{
-	Eq: func(a, b int) bool {
-		return a == b
-	},
-	H: func(a int) int64 {
-		return int64(a)
-	},
-}
-
 type Number interface {
-	byte | int | int32 | int64
+	int | int8 | int16 | int32 | int64 |
+		uint | uint8 | uint16 | uint32 | uint64 |
+		float32 | float64 |
+		uintptr
 }
 
 func Num[T Number]() EqHash[T] {
@@ -65,7 +61,9 @@ func String() EqHash[string] {
 	return stringEq
 }
 
-// Gob encoding based hash code
+// Gob encoding based hash code.
+// This hashes the bytes of the gob encoding of T.
+// Remember that this excludes private fields, pointers, and can fail at runtime for some types.
 func Gob[T comparable]() EqHash[T] {
 	return Fun[T]{
 		Eq: func(a, b T) bool {
@@ -76,6 +74,31 @@ func Gob[T comparable]() EqHash[T] {
 			d := gob.NewEncoder(h)
 			d.Encode(a)
 			return int64(h.Sum64())
+		},
+	}
+}
+
+// Hashable are types with a Hash function.
+type Hashable interface {
+	// Hash deterministically computes an int value fom a value.
+	// Ideally, distinct values should have a high chance of distinct hash values, and computation should be fast.
+	Hash() int64
+}
+
+// EqHashable combines equality.Equal and Hashable interfaces
+type EqHashable[T any] interface {
+	equality.Equal[T]
+	Hashable
+}
+
+// Natural uses the hash function implemented by the types Hash function.
+func Natural[T EqHashable[T]]() EqHash[T] {
+	return Fun[T]{
+		Eq: func(a, b T) bool {
+			return a.Equal(b)
+		},
+		H: func(a T) int64 {
+			return a.Hash()
 		},
 	}
 }

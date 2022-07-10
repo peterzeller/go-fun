@@ -4,6 +4,8 @@
 
 Utilities and immutable collections for functional programming in Golang.
 
+For documentation, check the [Go Package Documentation](https://pkg.go.dev/github.com/peterzeller/go-fun).
+
 ## Features
 
 - Immutable data structures
