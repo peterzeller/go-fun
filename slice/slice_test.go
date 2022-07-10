@@ -51,9 +51,9 @@ func TestIndexOf(t *testing.T) {
 	require.Equal(t, -1, slice.IndexOf(4, []int{0, 1, 2, 3}, equality.Default[int]()))
 }
 
-func ExampleRemove() {
+func ExampleRemoveAt() {
 	l := []int{4, 13, 7, 8}
-	r := slice.Remove(l, 2)
+	r := slice.RemoveAt(l, 2)
 	fmt.Printf("r = %#v\n", r)
 	// output: r = []int{4, 13, 8}
 }

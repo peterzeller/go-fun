@@ -78,9 +78,9 @@ func IndexOf[T any](elem T, elems []T, eq equality.Equality[T]) int {
 	return -1
 }
 
-// Remove removes the element at the given index from the slice and returns the modified slice.
-func Remove[T any](s []T, index int) []T {
-	return append(s[:index], s[index+1:]...)
+// RemoveAt removes the element at the given index from the slice and returns the modified slice.
+func RemoveAt[T any](s []T, index int) []T {
+	return append(append([]T{}, s[:index]...), s[index+1:]...)
 }
 
 // RemoveFirst removes the first occurrence of an element from the slice and returns the modified slice.

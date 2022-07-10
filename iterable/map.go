@@ -92,7 +92,7 @@ func FlatMapBreadthFirst[A, B any](base Iterable[A], f func(A) Iterable[B]) Iter
 					return r, true
 				}
 				// remove iterator from iterators list and try with next position
-				iterators = slice.Remove(iterators, pos)
+				iterators = slice.RemoveAt(iterators, pos)
 			}
 		})
 	})
