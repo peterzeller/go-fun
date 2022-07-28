@@ -17,6 +17,7 @@ For documentation, check the [Go Package Documentation](https://pkg.go.dev/githu
         - ArrayDict (package [dict/arraydict](./dict/arraydict))
     - Set (package [set](./set))
         - HashSet (package [dict/hashset](./dict/hashset))
+    - Optional (package [opt](./opt))
 - Iterable abstraction (package [iterable](./iterable))
 - Reducers for transforming data (map, filter, group by, etc) (package [reducer](./reducer))
 - Equality type class (package [equality](./equality))
