@@ -1,6 +1,9 @@
 package slice
 
-import "github.com/peterzeller/go-fun/equality"
+import (
+	"github.com/peterzeller/go-fun/equality"
+	"math/rand"
+)
 
 // ContainsEq checks whether a slice contains an element
 func ContainsEq[T any](s []T, elem T, eq equality.Equality[T]) bool {
@@ -106,4 +109,20 @@ func RemoveAll[T any](s []T, elem T, eq equality.Equality[T]) []T {
 		}
 	}
 	return res
+}
+
+// Map maps a function over the slice
+func Map[A, B any](s []A, f func(A) B) []B {
+	res := make([]B, len(s))
+	for i, x := range s {
+		res[i] = f(x)
+	}
+	return res
+}
+
+// Shuffle puts a slice into random order
+func Shuffle[T any](s []T) {
+	rand.Shuffle(len(s), func(i, j int) {
+		s[i], s[j] = s[j], s[i]
+	})
 }

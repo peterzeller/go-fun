@@ -71,3 +71,10 @@ func ExampleRemoveFirst() {
 	fmt.Printf("r = %#v\n", r)
 	// output: r = []int{4, 7, 13, 13, 8}
 }
+
+func ExampleMap() {
+	l1 := []int{1, 2, 3}
+	l2 := slice.Map(l1, func(x int) string { return fmt.Sprintf("%dx", x) })
+	fmt.Printf("l2 = %#v\n", l2)
+	// output: l2 = []string{"1x", "2x", "3x"}
+}
