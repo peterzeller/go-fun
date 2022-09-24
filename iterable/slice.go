@@ -4,6 +4,10 @@ type sliceIterable[T any] struct {
 	slice []T
 }
 
+func (s sliceIterable[T]) Length() int {
+	return len(s.slice)
+}
+
 type sliceIterator[T any] struct {
 	slice []T
 }
@@ -30,7 +34,7 @@ func (s *sliceIterator[T]) Next() (next T, ok bool) {
 }
 
 func ToSlice[T any](i Iterable[T]) []T {
-	res := make([]T, 0)
+	res := make([]T, 0, Length(i))
 	it := i.Iterator()
 	for {
 		if n, ok := it.Next(); ok {

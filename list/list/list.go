@@ -42,6 +42,16 @@ func New[T any](elems ...T) List[T] {
 	return List[T]{slice: s}
 }
 
+// FromIterable creates a new list from an iterable
+func FromIterable[T any](i iterable.Iterable[T]) List[T] {
+	s := make([]T, 0, iterable.Length(i))
+	for it := iterable.Start(i); it.HasNext(); it.Next() {
+		s = append(s, it.Current())
+	}
+
+	return List[T]{slice: s}
+}
+
 // String implements the fmt.Stringer interface
 func (l List[T]) String() string {
 	return iterable.String[T](l)

@@ -18,12 +18,17 @@ type mapIterable[A, B any] struct {
 	f    func(A) B
 }
 
+// Length of a mapIterable is the same as the length of the base
+func (i mapIterable[A, B]) Length() int {
+	return Length(i.base)
+}
+
 type mapIterator[A, B any] struct {
 	base Iterator[A]
 	f    func(A) B
 }
 
-func (i *mapIterable[A, B]) Iterator() Iterator[B] {
+func (i mapIterable[A, B]) Iterator() Iterator[B] {
 	return &mapIterator[A, B]{i.base.Iterator(), i.f}
 }
 

@@ -148,3 +148,9 @@ func ExampleList_RemoveAll() {
 	// output: a = [5, 3, 3, 9, 42, 14, 3]
 	// b = [5, 9, 42, 14]
 }
+
+func ExampleFromIterable() {
+	l := list.FromIterable(iterable.RangeI(1, 5))
+	fmt.Printf("l = %v\n", l)
+	// output: l = [1, 2, 3, 4, 5]
+}
