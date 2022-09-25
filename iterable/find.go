@@ -2,6 +2,7 @@ package iterable
 
 import "github.com/peterzeller/go-fun/zero"
 
+// Find an element in an iterable
 func Find[T any](i Iterable[T], cond func(T) bool) (T, bool) {
 	it := i.Iterator()
 	for {

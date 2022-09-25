@@ -3,7 +3,6 @@ package opt
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/peterzeller/go-fun/iterable"
 )
 
@@ -27,6 +26,17 @@ func Some[T any](v T) Optional[T] {
 	}
 }
 
+// Make an Optional from a value and a boolean
+func Make[T any](v T, ok bool) Optional[T] {
+	if ok {
+		return Optional[T]{
+			present: true,
+			value:   v,
+		}
+	}
+	return None[T]()
+}
+
 // First returns the first value from the given iterable or None if the iterable is empty
 func First[T any](it iterable.Iterable[T]) Optional[T] {
 	i := it.Iterator()
@@ -34,6 +44,11 @@ func First[T any](it iterable.Iterable[T]) Optional[T] {
 		return Some(v)
 	}
 	return None[T]()
+}
+
+// Find an element in an iterable
+func Find[T any](i iterable.Iterable[T], cond func(T) bool) Optional[T] {
+	return Make(iterable.Find(i, cond))
 }
 
 // Present returns true if this optional has a value

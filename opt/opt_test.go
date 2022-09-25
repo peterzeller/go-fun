@@ -3,7 +3,6 @@ package opt_test
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/peterzeller/go-fun/iterable"
 	"github.com/peterzeller/go-fun/list/list"
 	"github.com/peterzeller/go-fun/opt"
@@ -138,4 +137,28 @@ func ExampleOptional_GetPointer() {
 	// output:
 	// a -> (*int)(nil)
 	// b -> 42
+}
+
+func ExampleMake() {
+	m := map[string]int{
+		"a": 42,
+		"b": 17,
+	}
+	v, ok := m["a"]
+	o1 := opt.Make(v, ok)
+	v, ok = m["x"]
+	o2 := opt.Make(v, ok)
+	fmt.Printf("o1 = %v\n", o1)
+	fmt.Printf("o2 = %v\n", o2)
+	// output:
+	// o1 = Some(42)
+	// o2 = None()
+}
+
+func ExampleFind() {
+	i := iterable.FromSlice([]int{1, 2, 3, 4, 5, 6})
+	o1 := opt.Find(i, func(t int) bool { return t >= 5 })
+	o2 := opt.Find(i, func(t int) bool { return t >= 10 })
+	fmt.Printf("o1 = %v, o2 = %v\n", o1, o2)
+	// output: o1 = Some(5), o2 = None()
 }
