@@ -1,6 +1,7 @@
 package list
 
 import (
+	"fmt"
 	"github.com/peterzeller/go-fun/equality"
 	"github.com/peterzeller/go-fun/iterable"
 	"github.com/peterzeller/go-fun/slice"
@@ -147,4 +148,27 @@ func (l List[T]) RemoveAll(elem T, eq equality.Equality[T]) List[T] {
 	return List[T]{
 		slice: slice.RemoveAll(l.slice, elem, eq),
 	}
+}
+
+// Map applies a function to all elements in the list
+func Map[A, B any](list List[A], f func(A) B) List[B] {
+	res := make([]B, list.Length())
+	for i, a := range list.slice {
+		res[i] = f(a)
+	}
+	return List[B]{slice: res}
+}
+
+// Map applies a function that can return an error to all elements in the list.
+// If the function errors for one element, it errors for all
+func MapErr[A, B any](list List[A], f func(A) (B, error)) (List[B], error) {
+	res := make([]B, list.Length())
+	for i, a := range list.slice {
+		var err error
+		res[i], err = f(a)
+		if err != nil {
+			return New[B](), fmt.Errorf("at index %d: %w", i, err)
+		}
+	}
+	return List[B]{slice: res}, nil
 }

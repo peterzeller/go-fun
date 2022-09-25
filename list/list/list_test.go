@@ -2,6 +2,7 @@ package list_test
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/peterzeller/go-fun/equality"
 	"github.com/peterzeller/go-fun/iterable"
@@ -153,4 +154,28 @@ func ExampleFromIterable() {
 	l := list.FromIterable(iterable.RangeI(1, 5))
 	fmt.Printf("l = %v\n", l)
 	// output: l = [1, 2, 3, 4, 5]
+}
+
+func ExampleMap() {
+	a := list.New("5", "3", "4")
+	b := list.Map(a, func(a string) int {
+		b, _ := strconv.Atoi(a)
+		return b
+	})
+	fmt.Printf("b = %v\n", b)
+	// output: b = [5, 3, 4]
+}
+
+func ExampleMapErr() {
+	a := list.New("5", "3", "4")
+	b, err := list.MapErr(a, strconv.Atoi)
+	fmt.Printf("b = %v, err = %v\n", b, err)
+	// output: b = [5, 3, 4], err = <nil>
+}
+
+func ExampleMapErr_withError() {
+	a := list.New("5", "three", "4")
+	b, err := list.MapErr(a, strconv.Atoi)
+	fmt.Printf("b = %v, err = %v\n", b, err)
+	// output: b = [], err = at index 1: strconv.Atoi: parsing "three": invalid syntax
 }
