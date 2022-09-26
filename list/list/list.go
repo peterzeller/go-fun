@@ -172,3 +172,23 @@ func MapErr[A, B any](list List[A], f func(A) (B, error)) (List[B], error) {
 	}
 	return List[B]{slice: res}, nil
 }
+
+// FlatMap applies a function to all elements in the list, returning an iterable for each item and returns a list
+// consisting of all elements returned.
+func FlatMap[A, B any](list List[A], f func(A) iterable.Iterable[B]) List[B] {
+	return FromIterable(iterable.FlatMap[A, B](list, f))
+}
+
+// Filter keeps only the elements that match the condition
+func (l List[T]) Filter(cond func(T) bool) List[T] {
+	res := make([]T, 0, l.Length())
+	for _, a := range l.slice {
+		if cond(a) {
+			res = append(res, a)
+		}
+	}
+	if len(res) == l.Length() {
+		return l
+	}
+	return New(res...)
+}

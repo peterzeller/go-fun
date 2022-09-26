@@ -179,3 +179,21 @@ func ExampleMapErr_withError() {
 	fmt.Printf("b = %v, err = %v\n", b, err)
 	// output: b = [], err = at index 1: strconv.Atoi: parsing "three": invalid syntax
 }
+
+func ExampleFlatMap() {
+	a := list.New(1, 2, 3)
+	b := list.FlatMap(a, func(a int) iterable.Iterable[int] {
+		return list.New(-a, a)
+	})
+	fmt.Printf("b = %v\n", b)
+	// output: b = [-1, 1, -2, 2, -3, 3]
+}
+
+func ExampleFilter() {
+	a := list.New(7, 9, 10, 8, 11)
+	b := a.Filter(func(a int) bool {
+		return a >= 9
+	})
+	fmt.Printf("b = %v\n", b)
+	// output: b = [9, 10, 11]
+}
