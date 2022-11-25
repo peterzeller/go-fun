@@ -126,3 +126,14 @@ func Shuffle[T any](s []T) {
 		s[i], s[j] = s[j], s[i]
 	})
 }
+
+// Filter only keeps the elements where the predicate returns true
+func Filter[A any](s []A, p func(A) bool) []A {
+	res := make([]A, 0, len(s))
+	for _, x := range s {
+		if p(x) {
+			res = append(res, x)
+		}
+	}
+	return res
+}

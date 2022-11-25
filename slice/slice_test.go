@@ -78,3 +78,10 @@ func ExampleMap() {
 	fmt.Printf("l2 = %#v\n", l2)
 	// output: l2 = []string{"1x", "2x", "3x"}
 }
+
+func ExampleFilter() {
+	l := []int{4, 13, 7, 13, 13, 8}
+	r := slice.Filter(l, func(x int) bool { return x < 10 })
+	fmt.Printf("r = %#v\n", r)
+	// output: r = []int{4, 7, 8}
+}
